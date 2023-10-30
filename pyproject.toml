@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "baidu"
+version = "0.1.0"
+description = ""
+authors = ["Philipp Hager <philipp.konstantin.hager@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.13"
+jax = "^0.4.19"
+flax = "^0.7.5"
+optax = "^0.1.7"
+torch = "^2.1.0"
+datasets = "^2.14.6"
+pyarrow = "^13.0.0"
+rax = "^0.3.0"
+typing-extensions = "^4.8.0"
+picologging = "^0.9.3"
+rich = "^13.6.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
