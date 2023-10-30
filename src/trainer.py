@@ -26,9 +26,9 @@ class Trainer:
         metric_fns={
             "ndcg@10": partial(rax.ndcg_metric, topn=10),
             "mrr@10": partial(rax.mrr_metric, topn=10),
-            "dcg@1": partial(rax.dcg_metric, topn=1),
-            "dcg@3": partial(rax.dcg_metric, topn=3),
-            "dcg@5": partial(rax.dcg_metric, topn=5),
+            "dcg@01": partial(rax.dcg_metric, topn=1),
+            "dcg@03": partial(rax.dcg_metric, topn=3),
+            "dcg@05": partial(rax.dcg_metric, topn=5),
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
         epochs: int = 25,
