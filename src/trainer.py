@@ -22,7 +22,7 @@ class Trainer:
         self,
         random_state: int = 0,
         optimizer=optax.adam(learning_rate=0.0003),
-        criterion=rax.pointwise_sigmoid_loss,
+        criterion=rax.softmax_loss,
         metric_fns={
             "ndcg@10": partial(rax.ndcg_metric, topn=10),
             "mrr@10": partial(rax.mrr_metric, topn=10),
