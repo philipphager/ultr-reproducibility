@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 
 from src.data import collate_clicks, collate_annotations
 from src.models.naive import NaiveModel
+from src.models.pbm import PositionBasedModel
 from src.trainer import Trainer
 
 logging.basicConfig(
@@ -56,7 +57,7 @@ def main():
         num_workers=1,
     )
 
-    model = NaiveModel()
+    model = PositionBasedModel()
     trainer = Trainer()
     best_state = trainer.train(model, trainer_loader, val_loader)
     trainer.test(best_state, test_loader)
