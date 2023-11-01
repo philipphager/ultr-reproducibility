@@ -6,8 +6,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader
 
-from src.data import collate_clicks, collate_annotations
-from src.models.naive import NaiveModel
+from src.data import collate_clicks, collate_annotations, LabelEncoder, Discretize
 from src.models.pbm import PositionBasedModel
 from src.trainer import Trainer
 
@@ -37,6 +36,22 @@ def main():
     train_dataset.set_format("torch")
     val_dataset.set_format("torch")
     test_dataset.set_format("torch")
+
+    encode_media_type = LabelEncoder()
+    encode_serp_height = Discretize(0, 1024, 16)
+    encode_displayed_time = Discretize(0, 128, 16)
+    encode_slipoff = Discretize(0, 10, 10)
+
+    def encode_bias(batch):
+        batch["media_type"] = encode_media_type(batch["media_type"])
+        batch["displayed_time"] = encode_displayed_time(batch["displayed_time"])
+        batch["serp_height"] = encode_serp_height(batch["serp_height"])
+        batch["slipoff_count_after_click"] = encode_slipoff(
+            batch["slipoff_count_after_click"]
+        )
+        return batch
+
+    train_dataset = train_dataset.map(encode_bias)
 
     trainer_loader = DataLoader(
         train_dataset,
