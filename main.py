@@ -23,19 +23,12 @@ logging.basicConfig(
 )
 
 
-def main():
+def load_train_data():
     train_dataset = load_dataset(
         "philipphager/baidu-ultr-606k", name="clicks", split="train"
     )
-    val_dataset = load_dataset(
-        "philipphager/baidu-ultr-606k", name="annotations", split="validation[:50%]"
-    )
-    test_dataset = load_dataset(
-        "philipphager/baidu-ultr-606k", name="annotations", split="validation[50%:]"
-    )
+
     train_dataset.set_format("torch")
-    val_dataset.set_format("torch")
-    test_dataset.set_format("torch")
 
     encode_media_type = LabelEncoder()
     encode_serp_height = Discretize(0, 1024, 16)
@@ -51,13 +44,38 @@ def main():
         )
         return batch
 
-    train_dataset = train_dataset.map(encode_bias)
+    return train_dataset.map(encode_bias)
+
+
+def load_val_data():
+    val_dataset = load_dataset(
+        "philipphager/baidu-ultr-606k", name="annotations", split="validation[:50%]"
+    )
+
+    val_dataset.set_format("torch")
+    return val_dataset
+
+
+def load_test_data():
+    test_dataset = load_dataset(
+        "philipphager/baidu-ultr-606k", name="annotations", split="validation[50%:]"
+    )
+
+    test_dataset.set_format("torch")
+    return test_dataset
+
+
+def main():
+    train_dataset = load_train_data()
+    val_dataset = load_val_data()
+    test_dataset = load_test_data()
 
     trainer_loader = DataLoader(
         train_dataset,
         collate_fn=collate_clicks,
         batch_size=16,
         num_workers=4,
+        shuffle=True,
     )
     val_loader = DataLoader(
         val_dataset,
@@ -66,7 +84,7 @@ def main():
         num_workers=4,
     )
     test_loader = DataLoader(
-        val_dataset,
+        test_dataset,
         collate_fn=collate_annotations,
         batch_size=16,
         num_workers=1,
