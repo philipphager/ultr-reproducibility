@@ -16,9 +16,9 @@ class BiasTower(nn.Module):
     ) -> Union[Array, Tuple[Array, Array]]:
         position = nn.Embed(num_embeddings=50, features=8)
         media_type = nn.Embed(num_embeddings=1_000, features=8)
-        serp_height = nn.Embed(num_embeddings=17, features=8)
-        displayed_time = nn.Embed(num_embeddings=17, features=8)
-        slipoff_count = nn.Embed(num_embeddings=17, features=8)
+        serp_height = nn.Embed(num_embeddings=18, features=8)
+        displayed_time = nn.Embed(num_embeddings=18, features=8)
+        slipoff_count = nn.Embed(num_embeddings=18, features=8)
 
         x = jnp.concatenate(
             [
