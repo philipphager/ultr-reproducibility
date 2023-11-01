@@ -1,6 +1,9 @@
 import logging
+from functools import partial
 
 import jax
+import optax
+import rax
 from datasets import load_dataset
 from rich.console import Console
 from rich.logging import RichHandler
@@ -9,6 +12,7 @@ from torch.utils.data import DataLoader
 from src.data import collate_clicks, collate_annotations, LabelEncoder, Discretize
 from src.models.pbm import PositionBasedModel
 from src.trainer import Trainer
+from src.util import EarlyStopping
 
 logging.basicConfig(
     level="INFO",
@@ -91,7 +95,21 @@ def main():
     )
 
     model = PositionBasedModel()
-    trainer = Trainer()
+    trainer = Trainer(
+        random_state=0,
+        optimizer=optax.adam(learning_rate=0.0001),
+        criterion=rax.pointwise_sigmoid_loss,
+        metric_fns={
+            "ndcg@10": partial(rax.ndcg_metric, topn=10),
+            "mrr@10": partial(rax.mrr_metric, topn=10),
+            "dcg@01": partial(rax.dcg_metric, topn=1),
+            "dcg@03": partial(rax.dcg_metric, topn=3),
+            "dcg@05": partial(rax.dcg_metric, topn=5),
+            "dcg@10": partial(rax.dcg_metric, topn=10),
+        },
+        epochs=25,
+        early_stopping=EarlyStopping(metric="ndcg@10", patience=0),
+    )
     best_state = trainer.train(model, trainer_loader, val_loader)
     trainer.test(best_state, test_loader)
 

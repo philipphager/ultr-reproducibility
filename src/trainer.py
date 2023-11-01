@@ -1,11 +1,10 @@
 import logging
 from functools import partial
+from typing import Dict, Callable
 
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import optax
-import rax
 from flax.training.train_state import TrainState
 from jax import jit
 from rich.progress import track
@@ -19,20 +18,13 @@ logger = logging.getLogger("rich")
 
 class Trainer:
     def __init__(
-        self,
-        random_state: int = 0,
-        optimizer=optax.adam(learning_rate=0.0001),
-        criterion=rax.pointwise_sigmoid_loss,
-        metric_fns={
-            "ndcg@10": partial(rax.ndcg_metric, topn=10),
-            "mrr@10": partial(rax.mrr_metric, topn=10),
-            "dcg@01": partial(rax.dcg_metric, topn=1),
-            "dcg@03": partial(rax.dcg_metric, topn=3),
-            "dcg@05": partial(rax.dcg_metric, topn=5),
-            "dcg@10": partial(rax.dcg_metric, topn=10),
-        },
-        epochs: int = 25,
-        early_stopping: EarlyStopping = EarlyStopping(metric="ndcg@10", patience=0),
+            self,
+            random_state: int,
+            optimizer,
+            criterion,
+            metric_fns: Dict[str, Callable],
+            epochs: int,
+            early_stopping: EarlyStopping,
     ):
         self.random_state = random_state
         self.optimizer = optimizer
