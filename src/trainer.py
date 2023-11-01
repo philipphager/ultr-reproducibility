@@ -21,8 +21,8 @@ class Trainer:
     def __init__(
         self,
         random_state: int = 0,
-        optimizer=optax.adam(learning_rate=0.0003),
-        criterion=rax.softmax_loss,
+        optimizer=optax.adam(learning_rate=0.0001),
+        criterion=rax.pointwise_sigmoid_loss,
         metric_fns={
             "ndcg@10": partial(rax.ndcg_metric, topn=10),
             "mrr@10": partial(rax.mrr_metric, topn=10),
@@ -32,7 +32,7 @@ class Trainer:
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
         epochs: int = 25,
-        early_stopping: EarlyStopping = EarlyStopping(metric="ndcg@10"),
+        early_stopping: EarlyStopping = EarlyStopping(metric="ndcg@10", patience=0),
     ):
         self.random_state = random_state
         self.optimizer = optimizer
