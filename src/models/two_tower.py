@@ -46,11 +46,13 @@ class TwoTowerModel(nn.Module):
         self, batch, training: bool = False
     ) -> Union[Array, Tuple[Array, Array]]:
         relevance_model = Tower(layers=[16, 16], dropouts=[0.5, 0.5])
-        relevance = relevance_model(batch["query_document_embedding"]).squeeze()
+        relevance = relevance_model(
+            batch["query_document_embedding"], training
+        ).squeeze()
         examination_model = BiasTower(layers=[16, 16], dropouts=[0.5, 0.5])
 
         if training:
-            examination = examination_model(batch).squeeze()
+            examination = examination_model(batch, training).squeeze()
             return examination + relevance
         else:
             return relevance

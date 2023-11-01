@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 
 from src.data import collate_clicks, collate_annotations, LabelEncoder, Discretize
 from src.models.naive import NaiveModel
+from src.models.pbm import PositionBasedModel
 from src.trainer import Trainer
 from src.util import EarlyStopping
 
@@ -94,7 +95,7 @@ def main():
         num_workers=1,
     )
 
-    model = NaiveModel()
+    model = PositionBasedModel()
     trainer = Trainer(
         random_state=0,
         optimizer=optax.adam(learning_rate=0.0001),
