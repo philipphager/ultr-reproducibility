@@ -16,7 +16,7 @@ class PositionBasedModel(nn.Module):
     def __call__(
         self, batch, training: bool = False
     ) -> Union[Array, Tuple[Array, Array]]:
-        relevance_model = Tower(layers=[16, 16])
+        relevance_model = Tower(layers=[16, 16], dropouts=[0.5, 0.5])
         examination_model = nn.Embed(num_embeddings=50, features=1)
         relevance = relevance_model(batch["query_document_embedding"]).squeeze()
 

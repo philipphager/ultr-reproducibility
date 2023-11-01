@@ -11,6 +11,6 @@ class NaiveModel(nn.Module):
     def __call__(
         self, batch, training: bool = False
     ) -> Union[Array, Tuple[Array, Array]]:
-        relevance_model = Tower(layers=[16, 16])
-        relevance = relevance_model(batch["query_document_embedding"])
+        relevance_model = Tower(layers=[16, 16], dropouts=[0.5, 0.5])
+        relevance = relevance_model(batch["query_document_embedding"], training)
         return relevance.squeeze()

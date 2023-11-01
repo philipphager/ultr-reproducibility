@@ -5,6 +5,7 @@ from typing import Dict, Callable
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
+from flax.training import train_state
 from flax.training.train_state import TrainState
 from jax import jit
 from rich.progress import track
@@ -16,15 +17,19 @@ from src.util import EarlyStopping, aggregate_metrics
 logger = logging.getLogger("rich")
 
 
+class TrainState(train_state.TrainState):
+    dropout_key: jax.Array
+
+
 class Trainer:
     def __init__(
-            self,
-            random_state: int,
-            optimizer,
-            criterion,
-            metric_fns: Dict[str, Callable],
-            epochs: int,
-            early_stopping: EarlyStopping,
+        self,
+        random_state: int,
+        optimizer,
+        criterion,
+        metric_fns: Dict[str, Callable],
+        epochs: int,
+        early_stopping: EarlyStopping,
     ):
         self.random_state = random_state
         self.optimizer = optimizer
@@ -74,20 +79,31 @@ class Trainer:
         return aggregate_metrics(metrics)
 
     def _init_train_state(self, model, train_loader):
-        batch = next(iter(train_loader))
         key = jax.random.PRNGKey(self.random_state)
-        params = model.init(key, batch, training=True)
+        key, param_key, dropout_key = jax.random.split(key, num=3)
+
+        init_rngs = {"params": param_key, "dropout": dropout_key}
+        init_data = next(iter(train_loader))
+        params = model.init(init_rngs, init_data, training=True)
 
         return TrainState.create(
             apply_fn=model.apply,
             params=params,
             tx=self.optimizer,
+            dropout_key=dropout_key,
         )
 
     @partial(jit, static_argnums=(0,))
     def _train_step(self, state, batch):
+        dropout_key = jax.random.fold_in(key=state.dropout_key, data=state.step)
+
         def loss_fn(params):
-            y_predict = state.apply_fn(params, batch, training=True)
+            y_predict = state.apply_fn(
+                params,
+                batch,
+                training=True,
+                rngs={"dropout": dropout_key},
+            )
             return self.criterion(y_predict, batch["click"], where=batch["mask"])
 
         loss, grads = jax.value_and_grad(loss_fn)(state.params)
@@ -98,7 +114,12 @@ class Trainer:
     @partial(jit, static_argnums=(0,))
     def _eval_step(self, state, batch):
         label, mask = batch["label"], batch["mask"]
-        y_predict = state.apply_fn(state.params, batch, training=False)
+        y_predict = state.apply_fn(
+            state.params,
+            batch,
+            training=False,
+            rngs={"dropout": state.dropout_key},
+        )
 
         return {
             name: metric_fn(y_predict, label, where=mask, reduce_fn=jnp.mean)

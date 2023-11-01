@@ -9,6 +9,7 @@ from src.models.base import Tower
 
 class BiasTower(nn.Module):
     layers: List[int]
+    dropouts: List[float]
 
     @nn.compact
     def __call__(
@@ -30,7 +31,7 @@ class BiasTower(nn.Module):
             ],
             axis=-1,
         )
-        examination = Tower(layers=self.layers)
+        examination = Tower(layers=self.layers, dropouts=self.dropouts)
         return examination(x)
 
 
@@ -44,9 +45,9 @@ class TwoTowerModel(nn.Module):
     def __call__(
         self, batch, training: bool = False
     ) -> Union[Array, Tuple[Array, Array]]:
-        relevance_model = Tower(layers=[16, 16])
+        relevance_model = Tower(layers=[16, 16], dropouts=[0.5, 0.5])
         relevance = relevance_model(batch["query_document_embedding"]).squeeze()
-        examination_model = BiasTower(layers=[16, 16])
+        examination_model = BiasTower(layers=[16, 16], dropouts=[0.5, 0.5])
 
         if training:
             examination = examination_model(batch).squeeze()

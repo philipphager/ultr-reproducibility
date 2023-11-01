@@ -6,14 +6,18 @@ from jax import Array
 
 class Tower(nn.Module):
     layers: List[int]
+    dropouts: List[float]
 
     @nn.compact
-    def __call__(self, x) -> Array:
+    def __call__(self, x, training: bool) -> Array:
+        dropout_rng = self.make_rng("dropout")
+
         modules = []
 
-        for layer in self.layers:
+        for layer, dropout in zip(self.layers, self.dropouts):
             modules.append(nn.Dense(features=layer))
             modules.append(nn.elu)
+            modules.append(nn.Dropout(rate=dropout, deterministic=not training))
 
         modules.append(nn.Dense(features=1))
         model = nn.Sequential(modules)
