@@ -1,4 +1,4 @@
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 
 from flax import linen as nn
 from jax import Array
@@ -12,18 +12,27 @@ class PositionBasedModel(nn.Module):
     P(C = 1 | d, q, k) = P(E = 1 | k) x P(R = 1 | d, q)
     """
 
+    relevance_layers: List[int]
+    relevance_dropouts: List[float]
+    n_positions: int
+
     @nn.compact
     def __call__(
         self, batch, training: bool = False
     ) -> Union[Array, Tuple[Array, Array]]:
-        relevance_model = Tower(layers=[16, 16], dropouts=[0.5, 0.5])
-        examination_model = nn.Embed(num_embeddings=50, features=1)
-        relevance = relevance_model(
-            batch["query_document_embedding"], training
-        ).squeeze()
+        relevance_model = Tower(
+            layers=self.relevance_layers,
+            dropouts=self.relevance_dropouts,
+        )
+        examination_model = nn.Embed(
+            num_embeddings=self.n_positions,
+            features=1,
+        )
+
+        relevance = relevance_model(batch["query_document_embedding"], training)
 
         if training:
-            examination = examination_model(batch["position"]).squeeze()
-            return examination + relevance
+            examination = examination_model(batch["position"])
+            return (examination + relevance).squeeze()
         else:
-            return relevance
+            return relevance.squeeze()
