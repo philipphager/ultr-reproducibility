@@ -33,7 +33,6 @@ def load_train_data():
         "philipphager/baidu-ultr-606k", name="clicks", split="train"
     )
 
-    train_dataset.set_format("torch")
     train_dataset.set_format("numpy")
 
     encode_media_type = LabelEncoder()
