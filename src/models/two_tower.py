@@ -32,7 +32,7 @@ class BiasTower(nn.Module):
             axis=-1,
         )
         examination = Tower(layers=self.layers, dropouts=self.dropouts)
-        return examination(x)
+        return examination(x, training)
 
 
 class TwoTowerModel(nn.Module):
