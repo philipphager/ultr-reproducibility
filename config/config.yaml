@@ -1,2 +1,2 @@
 defaults:
-  - model: naive
+  - model: two-towers
