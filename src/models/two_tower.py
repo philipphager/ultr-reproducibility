@@ -31,8 +31,9 @@ class BiasTower(nn.Module):
             ],
             axis=-1,
         )
-        examination = Tower(layers=self.layers, dropouts=self.dropouts)
-        return examination(x, training)
+
+        bias_model = Tower(layers=self.layers, dropouts=self.dropouts)
+        return bias_model(x, training)
 
 
 class TwoTowerModel(nn.Module):
@@ -41,18 +42,28 @@ class TwoTowerModel(nn.Module):
     P(C = 1 | d, q, b) = P(E = 1 | b) x P(R = 1 | d, q)
     """
 
+    bias_layers: List[int]
+    bias_dropouts: List[float]
+    relevance_layers: List[int]
+    relevance_dropouts: List[float]
+
     @nn.compact
     def __call__(
         self, batch, training: bool = False
     ) -> Union[Array, Tuple[Array, Array]]:
-        relevance_model = Tower(layers=[16, 16], dropouts=[0.5, 0.5])
-        relevance = relevance_model(
-            batch["query_document_embedding"], training
-        ).squeeze()
-        examination_model = BiasTower(layers=[16, 16], dropouts=[0.5, 0.5])
+        relevance_model = Tower(
+            layers=self.relevance_layers,
+            dropouts=self.relevance_dropouts,
+        )
+
+        relevance = relevance_model(batch["query_document_embedding"], training)
 
         if training:
-            examination = examination_model(batch, training).squeeze()
-            return examination + relevance
+            bias_model = BiasTower(
+                layers=self.bias_layers,
+                dropouts=self.bias_dropouts,
+            )
+            bias = bias_model(batch, training)
+            return (bias + relevance).squeeze()
         else:
-            return relevance
+            return relevance.squeeze()
