@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from src.data import collate_clicks, collate_annotations, LabelEncoder, Discretize
 from src.models.naive import NaiveModel
-from src.models.pbm import PositionBasedModel
+from src.models.two_tower import TwoTowerModel
 from src.trainer import Trainer
 from src.util import EarlyStopping
 
@@ -34,6 +34,7 @@ def load_train_data():
     )
 
     train_dataset.set_format("torch")
+    train_dataset.set_format("numpy")
 
     encode_media_type = LabelEncoder()
     encode_serp_height = Discretize(0, 1024, 16)
@@ -57,7 +58,7 @@ def load_val_data():
         "philipphager/baidu-ultr-606k", name="annotations", split="validation[:50%]"
     )
 
-    val_dataset.set_format("torch")
+    val_dataset.set_format("numpy")
     return val_dataset
 
 
@@ -66,7 +67,7 @@ def load_test_data():
         "philipphager/baidu-ultr-606k", name="annotations", split="validation[50%:]"
     )
 
-    test_dataset.set_format("torch")
+    test_dataset.set_format("numpy")
     return test_dataset
 
 
@@ -95,7 +96,7 @@ def main():
         num_workers=1,
     )
 
-    model = PositionBasedModel()
+    model = TwoTowerModel()
     trainer = Trainer(
         random_state=0,
         optimizer=optax.adam(learning_rate=0.0001),

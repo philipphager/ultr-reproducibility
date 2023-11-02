@@ -1,11 +1,9 @@
 from collections import defaultdict
 from typing import List, Dict
 
-import torch
-from torch.nn.utils.rnn import pad_sequence
+import numpy as np
 
-CLICK_COLUMNS = [
-    "query_id",
+PADDED_CLICK_COLUMNS = [
     "position",
     "query_document_embedding",
     "media_type",
@@ -15,35 +13,28 @@ CLICK_COLUMNS = [
     "click",
 ]
 
-ANNOTATION_COLUMNS = [
-    "query_id",
+PADDED_ANNOTATION_COLUMNS = [
     "query_document_embedding",
     "label",
 ]
 
 
-def collate_clicks(samples: List[Dict[str, torch.Tensor]]):
+def collate_clicks(samples: List[Dict[str, np.ndarray]]):
     """
     Collate function for training clicks from the Baidu-ULTR-606k dataset:
     https://huggingface.co/datasets/philipphager/baidu-ultr-606k/blob/main/baidu-ultr-606k.py
     """
     batch = defaultdict(lambda: [])
+    max_n = int(max([sample["n"] for sample in samples]))
 
     for sample in samples:
-        for column in CLICK_COLUMNS:
-            batch[column].append(sample[column])
+        batch["query_id"].append(sample["query_id"])
+        batch["mask"].append(pad(np.ones(sample["n"]), max_n))
 
-        batch["mask"].append(torch.ones(sample["n"]))
+        for column in PADDED_CLICK_COLUMNS:
+            batch[column].append(pad(sample[column], max_n))
 
-    collated_batch = {"query_id": torch.tensor(batch["query_id"]).numpy()}
-
-    for column, values in batch.items():
-        if column != "query_id":
-            collated_batch[column] = (
-                pad_sequence(values, batch_first=True).int().numpy()
-            )
-
-    return collated_batch
+    return {column: np.array(features, dtype=int) for column, features in batch.items()}
 
 
 def collate_annotations(samples: List):
@@ -51,22 +42,35 @@ def collate_annotations(samples: List):
     Pad a batch of queries to the size of the query with the most documents.
     """
     batch = defaultdict(lambda: [])
+    max_n = int(max([sample["n"] for sample in samples]))
 
     for sample in samples:
-        for column in ANNOTATION_COLUMNS:
-            batch[column].append(sample[column])
+        batch["query_id"].append(sample["query_id"])
+        batch["mask"].append(pad(np.ones(sample["n"]), max_n))
 
-        batch["mask"].append(torch.ones(sample["n"]))
+        for column in PADDED_ANNOTATION_COLUMNS:
+            batch[column].append(pad(sample[column], max_n))
 
-    collated_batch = {"query_id": torch.tensor(batch["query_id"]).numpy()}
+    return {column: np.array(features, dtype=int) for column, features in batch.items()}
 
-    for column, values in batch.items():
-        if column != "query_id":
-            collated_batch[column] = (
-                pad_sequence(values, batch_first=True).int().numpy()
-            )
 
-    return collated_batch
+def pad(x: np.ndarray, max_n: int):
+    """
+    Pads first (batch) dimension with zeros.
+
+    E.g.: x = np.array([5, 4, 3]), n = 5
+    -> np.array([5, 4, 3, 0, 0])
+
+    E.g.: x = np.array([[5, 4, 3], [1, 2, 3]]), n = 4
+    -> np.array([[5, 4, 3], [1, 2, 3], [0, 0, 0], [0, 0, 0]])
+    """
+    padding = max(max_n - x.shape[0], 0)
+    pad_width = [(0, padding)]
+
+    for i in range(x.ndim - 1):
+        pad_width.append((0, 0))
+
+    return np.pad(x, pad_width, mode="constant")
 
 
 class LabelEncoder:
@@ -75,7 +79,7 @@ class LabelEncoder:
         self.max_id = 1
 
     def __call__(self, x):
-        return x.apply_(self.encode)
+        return np.array(list(map(self.encode, x)))
 
     def encode(self, value):
         if value not in self.value2id:
@@ -97,7 +101,7 @@ class Discretize:
         self.low = low
         self.high = high
         self.buckets = buckets
-        self.boundaries = torch.linspace(low, high, steps=buckets + 1)
+        self.boundaries = np.linspace(low, high, num=buckets + 1)
 
     def __call__(self, x):
-        return torch.bucketize(x, self.boundaries, right=True).int()
+        return np.digitize(x, self.boundaries, right=False)
