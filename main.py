@@ -1,17 +1,19 @@
 import logging
 from functools import partial
 
+import hydra
 import jax
 import optax
 import rax
 from datasets import load_dataset
+from hydra.utils import instantiate
+from omegaconf import DictConfig
 from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader
 
 from src.data import LabelEncoder, Discretize, collate_fn
 from src.models.naive import NaiveModel
-from src.models.two_tower import TwoTowerModel
 from src.trainer import Trainer
 from src.util import EarlyStopping
 
@@ -70,7 +72,8 @@ def load_test_data():
     return test_dataset
 
 
-def main():
+@hydra.main(version_base="1.2", config_path="config", config_name="config")
+def main(config: DictConfig):
     train_dataset = load_train_data()
     val_dataset = load_val_data()
     test_dataset = load_test_data()
@@ -95,10 +98,8 @@ def main():
         num_workers=1,
     )
 
-    model = NaiveModel(
-        relevance_layers=[16, 16, 16],
-        relevance_dropouts=[0, 0.5, 0.5],
-    )
+    model = instantiate(config.model)
+
     trainer = Trainer(
         random_state=0,
         optimizer=optax.adam(learning_rate=0.0001),

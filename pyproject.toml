@@ -17,6 +17,7 @@ rax = "^0.3.0"
 typing-extensions = "^4.8.0"
 picologging = "^0.9.3"
 rich = "^13.6.0"
+hydra-core = "^1.3.2"
 
 
 [build-system]
