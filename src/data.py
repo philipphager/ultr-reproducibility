@@ -3,55 +3,46 @@ from typing import List, Dict
 
 import numpy as np
 
-PADDED_CLICK_COLUMNS = [
-    "position",
-    "query_document_embedding",
-    "media_type",
-    "displayed_time",
-    "serp_height",
-    "slipoff_count_after_click",
-    "click",
-]
+COLUMNS = {
+    "query_id": {"padded": False, "dtype": int},
+    "n": {"padded": False, "dtype": int},
+    "position": {"padded": True, "dtype": int},
+    "query_document_embedding": {"padded": True, "dtype": float},
+    "media_type": {"padded": True, "dtype": int},
+    "displayed_time": {"padded": True, "dtype": int},
+    "serp_height": {"padded": True, "dtype": int},
+    "slipoff_count_after_click": {"padded": True, "dtype": int},
+    "frequency_bucket": {"padded": False, "dtype": int},
+    "click": {"padded": True, "dtype": int},
+    "label": {"padded": True, "dtype": int},
+    "mask": {"padded": True, "dtype": int},
+}
 
-PADDED_ANNOTATION_COLUMNS = [
-    "query_document_embedding",
-    "label",
-]
 
-
-def collate_clicks(samples: List[Dict[str, np.ndarray]]):
+def collate_fn(samples: List[Dict[str, np.ndarray]]):
     """
-    Collate function for training clicks from the Baidu-ULTR-606k dataset:
+    Collate function for training clicks / labels from the Baidu-ULTR-606k dataset:
     https://huggingface.co/datasets/philipphager/baidu-ultr-606k/blob/main/baidu-ultr-606k.py
+
+    The function parses all available features, pads queries to the same numer of
+    documents, and converts datatypes.
     """
     batch = defaultdict(lambda: [])
     max_n = int(max([sample["n"] for sample in samples]))
 
     for sample in samples:
-        batch["query_id"].append(sample["query_id"])
+        for column, x in sample.items():
+            # Fix position feature (is apparently not strictly increasing in dataset:
+            x = np.arange(sample["n"]) + 1 if column == "position" else x
+            x = pad(x, max_n) if COLUMNS[column]["padded"] else x
+            batch[column].append(x)
+
         batch["mask"].append(pad(np.ones(sample["n"]), max_n))
 
-        for column in PADDED_CLICK_COLUMNS:
-            batch[column].append(pad(sample[column], max_n))
-
-    return {column: np.array(features, dtype=int) for column, features in batch.items()}
-
-
-def collate_annotations(samples: List):
-    """
-    Pad a batch of queries to the size of the query with the most documents.
-    """
-    batch = defaultdict(lambda: [])
-    max_n = int(max([sample["n"] for sample in samples]))
-
-    for sample in samples:
-        batch["query_id"].append(sample["query_id"])
-        batch["mask"].append(pad(np.ones(sample["n"]), max_n))
-
-        for column in PADDED_ANNOTATION_COLUMNS:
-            batch[column].append(pad(sample[column], max_n))
-
-    return {column: np.array(features, dtype=int) for column, features in batch.items()}
+    return {
+        column: np.array(features, dtype=COLUMNS[column]["dtype"])
+        for column, features in batch.items()
+    }
 
 
 def pad(x: np.ndarray, max_n: int):

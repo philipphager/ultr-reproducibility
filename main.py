@@ -9,9 +9,8 @@ from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader
 
-from src.data import collate_clicks, collate_annotations, LabelEncoder, Discretize
+from src.data import LabelEncoder, Discretize, collate_fn
 from src.models.naive import NaiveModel
-from src.models.two_tower import TwoTowerModel
 from src.trainer import Trainer
 from src.util import EarlyStopping
 
@@ -77,20 +76,20 @@ def main():
 
     trainer_loader = DataLoader(
         train_dataset,
-        collate_fn=collate_clicks,
+        collate_fn=collate_fn,
         batch_size=16,
         num_workers=4,
         shuffle=True,
     )
     val_loader = DataLoader(
         val_dataset,
-        collate_fn=collate_annotations,
+        collate_fn=collate_fn,
         batch_size=16,
         num_workers=4,
     )
     test_loader = DataLoader(
         test_dataset,
-        collate_fn=collate_annotations,
+        collate_fn=collate_fn,
         batch_size=16,
         num_workers=1,
     )
