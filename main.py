@@ -10,7 +10,7 @@ from rich.logging import RichHandler
 from torch.utils.data import DataLoader
 
 from src.data import LabelEncoder, Discretize, collate_fn
-from src.models.naive import NaiveModel
+from src.models.two_tower import TwoTowerModel
 from src.trainer import Trainer
 from src.util import EarlyStopping
 
