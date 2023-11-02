@@ -10,8 +10,6 @@ class Tower(nn.Module):
 
     @nn.compact
     def __call__(self, x, training: bool) -> Array:
-        dropout_rng = self.make_rng("dropout")
-
         modules = []
 
         for layer, dropout in zip(self.layers, self.dropouts):

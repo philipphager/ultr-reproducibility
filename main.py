@@ -10,6 +10,7 @@ from rich.logging import RichHandler
 from torch.utils.data import DataLoader
 
 from src.data import LabelEncoder, Discretize, collate_fn
+from src.models.naive import NaiveModel
 from src.models.two_tower import TwoTowerModel
 from src.trainer import Trainer
 from src.util import EarlyStopping
@@ -94,7 +95,10 @@ def main():
         num_workers=1,
     )
 
-    model = TwoTowerModel()
+    model = NaiveModel(
+        relevance_layers=[16, 16, 16],
+        relevance_dropouts=[0, 0.5, 0.5],
+    )
     trainer = Trainer(
         random_state=0,
         optimizer=optax.adam(learning_rate=0.0001),
