@@ -13,7 +13,6 @@ from rich.logging import RichHandler
 from torch.utils.data import DataLoader
 
 from src.data import LabelEncoder, Discretize, collate_fn
-from src.models.naive import NaiveModel
 from src.trainer import Trainer
 from src.util import EarlyStopping
 
@@ -113,7 +112,7 @@ def main(config: DictConfig):
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
         epochs=25,
-        early_stopping=EarlyStopping(metric="ndcg@10", patience=0),
+        early_stopping=EarlyStopping(metric="dcg@10", patience=1),
     )
     best_state = trainer.train(model, trainer_loader, val_loader)
     trainer.test(best_state, test_loader)

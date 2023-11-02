@@ -1,2 +1,2 @@
 defaults:
-  - model: pbm
+  - model: naive
