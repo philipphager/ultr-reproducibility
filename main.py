@@ -13,6 +13,7 @@ from rich.logging import RichHandler
 from torch.utils.data import DataLoader
 
 from src.data import LabelEncoder, Discretize, collate_fn
+from src.loss import regression_em
 from src.trainer import Trainer
 from src.util import EarlyStopping
 
@@ -102,7 +103,7 @@ def main(config: DictConfig):
     trainer = Trainer(
         random_state=0,
         optimizer=optax.adam(learning_rate=0.0001),
-        criterion=rax.pointwise_sigmoid_loss,
+        criterion=regression_em,
         metric_fns={
             "ndcg@10": partial(rax.ndcg_metric, topn=10),
             "mrr@10": partial(rax.mrr_metric, topn=10),

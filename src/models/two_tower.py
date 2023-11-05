@@ -1,3 +1,4 @@
+import enum
 from typing import Union, Tuple, List
 
 import jax.numpy as jnp
@@ -36,6 +37,26 @@ class BiasTower(nn.Module):
         return bias_model(x, training)
 
 
+class TowerCombination(enum.Enum):
+    NONE = "NONE"
+    ADDITIVE = "ADDITIVE"
+
+
+def combine_towers(
+    examination: Array,
+    relevance: Array,
+    combination: Union[TowerCombination, str],
+) -> Union[Array, Tuple[Array, Array]]:
+    combination = TowerCombination[combination]
+
+    if combination == TowerCombination.NONE:
+        return examination, relevance
+    elif combination == TowerCombination.ADDITIVE:
+        return examination + relevance
+    else:
+        raise ValueError(f"Unknown tower combination: {combination}")
+
+
 class TwoTowerModel(nn.Module):
     """
     With document d, query q, and bias features b:
@@ -46,6 +67,7 @@ class TwoTowerModel(nn.Module):
     bias_dropouts: List[float]
     relevance_layers: List[int]
     relevance_dropouts: List[float]
+    tower_combination: TowerCombination
 
     @nn.compact
     def __call__(
@@ -64,6 +86,11 @@ class TwoTowerModel(nn.Module):
                 dropouts=self.bias_dropouts,
             )
             bias = bias_model(batch, training)
-            return (bias + relevance).squeeze()
+
+            return combine_towers(
+                bias.squeeze(),
+                relevance.squeeze(),
+                self.tower_combination,
+            )
         else:
             return relevance.squeeze()

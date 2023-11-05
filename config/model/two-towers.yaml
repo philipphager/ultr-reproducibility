@@ -4,3 +4,4 @@ defaults:
 _target_: src.models.TwoTowerModel
 bias_layers: [32, 32]
 bias_dropouts: [0.1, 0.1]
+tower_combination: NONE

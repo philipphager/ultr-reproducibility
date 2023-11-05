@@ -4,6 +4,7 @@ from flax import linen as nn
 from jax import Array
 
 from src.models.base import Tower
+from src.models.two_tower import TowerCombination, combine_towers
 
 
 class PositionBasedModel(nn.Module):
@@ -15,6 +16,7 @@ class PositionBasedModel(nn.Module):
     relevance_layers: List[int]
     relevance_dropouts: List[float]
     n_positions: int
+    tower_combination: Union[TowerCombination, str]
 
     @nn.compact
     def __call__(
@@ -33,6 +35,10 @@ class PositionBasedModel(nn.Module):
 
         if training:
             examination = examination_model(batch["position"])
-            return (examination + relevance).squeeze()
+            return combine_towers(
+                examination.squeeze(),
+                relevance.squeeze(),
+                self.tower_combination,
+            )
         else:
             return relevance.squeeze()

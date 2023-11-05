@@ -3,3 +3,4 @@ defaults:
 
 _target_: src.models.PositionBasedModel
 n_positions: 25
+tower_combination: ADDITIVE
