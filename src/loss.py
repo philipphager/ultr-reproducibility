@@ -16,6 +16,12 @@ def regression_em(
     loss_fn: LossFn = rax.pointwise_sigmoid_loss,
     reduce_fn: Optional[ReduceFn] = jnp.mean,
 ) -> Array:
+    """
+    Implementation of RegressionEM from Wang et al, 2018: https://research.google/pubs/pub46485/
+    Numerically stable version as adopted from the Tensorflow Ranking library:
+    https://github.com/tensorflow/ranking/blob/c46cede726fd453e0aaa6097871d23dc8e465bdc/tensorflow_ranking/python/losses_impl.py#L1324
+    """
+
     exam_logits, rel_logits = scores
 
     exam_posterior = nn.sigmoid(exam_logits - nn.softplus(rel_logits))
