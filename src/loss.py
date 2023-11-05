@@ -21,23 +21,19 @@ def regression_em(
     """
     assert len(scores) == 2, "Scores must be a tuple of: (examination, relevance)"
     examination, relevance = scores
-
-    examination_posterior = nn.sigmoid(examination - nn.softplus(relevance))
-    examination_posterior = jnp.where(
-        labels, jnp.ones_like(examination_posterior), examination_posterior
-    )
-    examination_posterior = stop_gradient(examination_posterior)
-
-    relevance_posterior = nn.sigmoid(relevance - nn.softplus(examination))
-    relevance_posterior = jnp.where(
-        labels, jnp.ones_like(relevance_posterior), relevance_posterior
-    )
-    relevance_posterior = stop_gradient(relevance_posterior)
+    examination_posterior = get_posterior(examination, relevance, labels)
+    relevance_posterior = get_posterior(relevance, examination, labels)
 
     examination_loss = loss_fn(examination, examination_posterior, where=where)
     relevance_loss = loss_fn(relevance, relevance_posterior, where=where)
 
     return examination_loss + relevance_loss
+
+
+def get_posterior(x: Array, y: Array, labels: Array) -> Array:
+    posterior = nn.sigmoid(x - nn.softplus(y))
+    posterior = jnp.where(labels, jnp.ones_like(posterior), posterior)
+    return stop_gradient(posterior)
 
 
 def dual_learning_algorithm(
@@ -52,12 +48,8 @@ def dual_learning_algorithm(
     """
     assert len(scores) == 2, "Scores must be a tuple of: (examination, relevance)"
     examination, relevance = scores
-    examination_weights = stop_gradient(
-        get_normalized_weights(examination, where, max_weight)
-    )
-    relevance_weights = stop_gradient(
-        get_normalized_weights(relevance, where, max_weight)
-    )
+    examination_weights = get_normalized_weights(examination, where, max_weight)
+    relevance_weights = get_normalized_weights(relevance, where, max_weight)
 
     examination_loss = loss_fn(
         examination,
@@ -94,4 +86,4 @@ def get_normalized_weights(
     weights = probabilities[:, 0].reshape(-1, 1) / probabilities
     weights = jnp.where(where, weights, jnp.ones_like(scores))
 
-    return weights.clip(max=max_weight)
+    return stop_gradient(weights.clip(max=max_weight))
