@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import jax.numpy as jnp
 import rax
 from flax import linen as nn
@@ -7,7 +9,7 @@ from rax._src.types import LossFn
 
 
 def regression_em(
-    scores: Array,
+    scores: Tuple[Array, Array],
     labels: Array,
     where: Array,
     loss_fn: LossFn = rax.pointwise_sigmoid_loss,
@@ -17,34 +19,29 @@ def regression_em(
     Numerically stable version as adopted from the Tensorflow Ranking library:
     https://github.com/tensorflow/ranking/blob/c46cede726fd453e0aaa6097871d23dc8e465bdc/tensorflow_ranking/python/losses_impl.py#L1324
     """
+    assert len(scores) == 2, "Scores must be a tuple of: (examination, relevance)"
+    examination, relevance = scores
 
-    exam_logits, rel_logits = scores
-
-    exam_posterior = nn.sigmoid(exam_logits - nn.softplus(rel_logits))
-    exam_posterior = jnp.where(labels, jnp.ones_like(exam_posterior), exam_posterior)
-    exam_posterior = stop_gradient(exam_posterior)
-
-    rel_posterior = nn.sigmoid(rel_logits - nn.softplus(exam_logits))
-    rel_posterior = jnp.where(labels, jnp.ones_like(rel_posterior), rel_posterior)
-    rel_posterior = stop_gradient(rel_posterior)
-
-    exam_loss = loss_fn(
-        exam_logits,
-        exam_posterior,
-        where=where,
+    examination_posterior = nn.sigmoid(examination - nn.softplus(relevance))
+    examination_posterior = jnp.where(
+        labels, jnp.ones_like(examination_posterior), examination_posterior
     )
+    examination_posterior = stop_gradient(examination_posterior)
 
-    rel_loss = loss_fn(
-        rel_logits,
-        rel_posterior,
-        where=where,
+    relevance_posterior = nn.sigmoid(relevance - nn.softplus(examination))
+    relevance_posterior = jnp.where(
+        labels, jnp.ones_like(relevance_posterior), relevance_posterior
     )
+    relevance_posterior = stop_gradient(relevance_posterior)
 
-    return exam_loss + rel_loss
+    examination_loss = loss_fn(examination, examination_posterior, where=where)
+    relevance_loss = loss_fn(relevance, relevance_posterior, where=where)
+
+    return examination_loss + relevance_loss
 
 
 def dual_learning_algorithm(
-    scores: Array,
+    scores: Tuple[Array, Array],
     labels: Array,
     where: Array,
     loss_fn: LossFn = rax.softmax_loss,
@@ -53,7 +50,7 @@ def dual_learning_algorithm(
     """
     Implementation of the Dual Learning Algorithm from Ai et al, 2018: https://arxiv.org/pdf/1804.05938.pdf
     """
-
+    assert len(scores) == 2, "Scores must be a tuple of: (examination, relevance)"
     examination, relevance = scores
     examination_weights = stop_gradient(
         get_normalized_weights(examination, where, max_weight)
