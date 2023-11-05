@@ -85,5 +85,6 @@ def get_normalized_weights(
     # to weights by computing weights as 1 / propensities:
     weights = probabilities[:, 0].reshape(-1, 1) / probabilities
     weights = jnp.where(where, weights, jnp.ones_like(scores))
+    weights = weights.clip(max=max_weight)
 
-    return stop_gradient(weights.clip(max=max_weight))
+    return stop_gradient(weights)
