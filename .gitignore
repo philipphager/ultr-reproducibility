@@ -10,3 +10,4 @@ __pycache__
 # Logging
 wandb
 outputs
+multirun
