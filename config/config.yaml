@@ -1,2 +1,3 @@
 defaults:
   - model: two-towers
+  - loss: listwise-dla

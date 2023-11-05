@@ -1,0 +1,5 @@
+_target_: src.loss.regression_em
+_partial_: True
+loss_fn:
+  _target_: rax.softmax_loss
+  _partial_: True
