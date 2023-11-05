@@ -21,8 +21,8 @@ def regression_em(
     """
     assert len(scores) == 2, "Scores must be a tuple of: (examination, relevance)"
     examination, relevance = scores
-    examination_posterior = get_posterior(examination, relevance, labels)
-    relevance_posterior = get_posterior(relevance, examination, labels)
+    examination_posterior = _get_posterior(examination, relevance, labels)
+    relevance_posterior = _get_posterior(relevance, examination, labels)
 
     examination_loss = loss_fn(examination, examination_posterior, where=where)
     relevance_loss = loss_fn(relevance, relevance_posterior, where=where)
@@ -30,7 +30,7 @@ def regression_em(
     return examination_loss + relevance_loss
 
 
-def get_posterior(x: Array, y: Array, labels: Array) -> Array:
+def _get_posterior(x: Array, y: Array, labels: Array) -> Array:
     posterior = nn.sigmoid(x - nn.softplus(y))
     posterior = jnp.where(labels, jnp.ones_like(posterior), posterior)
     return stop_gradient(posterior)
@@ -48,8 +48,8 @@ def dual_learning_algorithm(
     """
     assert len(scores) == 2, "Scores must be a tuple of: (examination, relevance)"
     examination, relevance = scores
-    examination_weights = get_normalized_weights(examination, where, max_weight)
-    relevance_weights = get_normalized_weights(relevance, where, max_weight)
+    examination_weights = _get_normalized_weights(examination, where, max_weight)
+    relevance_weights = _get_normalized_weights(relevance, where, max_weight)
 
     examination_loss = loss_fn(
         examination,
@@ -67,7 +67,7 @@ def dual_learning_algorithm(
     return examination_loss + relevance_loss
 
 
-def get_normalized_weights(
+def _get_normalized_weights(
     scores: Array,
     where: Array,
     max_weight: float,
