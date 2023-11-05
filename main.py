@@ -13,7 +13,6 @@ from rich.logging import RichHandler
 from torch.utils.data import DataLoader
 
 from src.data import LabelEncoder, Discretize, collate_fn
-from src.loss import regression_em
 from src.trainer import Trainer
 from src.util import EarlyStopping
 
@@ -99,6 +98,7 @@ def main(config: DictConfig):
     )
 
     model = instantiate(config.model)
+    criterion = instantiate(config.loss)
 
     trainer = Trainer(
         random_state=0,
