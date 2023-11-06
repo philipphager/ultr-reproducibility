@@ -4,7 +4,7 @@ from typing import Dict, Callable
 
 import flax.linen as nn
 import jax
-import jax.numpy as jnp
+import pandas as pd
 from flax.training import train_state
 from flax.training.train_state import TrainState
 from jax import jit
@@ -12,7 +12,7 @@ from rich.progress import track
 from torch.utils.data import DataLoader
 
 from src.log import print_metric_table
-from src.util import EarlyStopping, aggregate_metrics
+from src.util import EarlyStopping, collect_metrics, aggregate_metrics
 
 logger = logging.getLogger("rich")
 
@@ -44,7 +44,9 @@ class Trainer:
 
         for epoch in range(self.epochs):
             state = self.train_epoch(state, train_loader, f"Epoch: {epoch} - Training")
-            val_metrics = self.eval_epoch(state, val_loader, f"Epoch: {epoch} - Val")
+            val_df = self.eval_epoch(state, val_loader, f"Epoch: {epoch} - Val")
+            val_metrics = aggregate_metrics(val_df)
+
             has_improved, should_stop = self.early_stopping.update(val_metrics)
             logger.info(
                 f"Epoch: {epoch} - {val_metrics} - has_improved: {has_improved}"
@@ -60,9 +62,11 @@ class Trainer:
         return best_model_state
 
     def test(self, state: TrainState, test_loader: DataLoader):
-        metrics = self.eval_epoch(state, test_loader, "Testing")
-        print_metric_table(metrics)
-        return metrics
+        test_df = self.eval_epoch(state, test_loader, "Testing")
+        test_metrics = aggregate_metrics(test_df)
+        print_metric_table(test_metrics)
+
+        return test_df
 
     def train_epoch(self, state: TrainState, loader: DataLoader, description: str):
         for batch in track(loader, description=description):
@@ -70,13 +74,15 @@ class Trainer:
 
         return state
 
-    def eval_epoch(self, state: TrainState, data_loader: DataLoader, description: str):
+    def eval_epoch(
+        self, state: TrainState, data_loader: DataLoader, description: str
+    ) -> pd.DataFrame:
         metrics = []
 
         for batch in track(data_loader, description=description):
             metrics.append(self._eval_step(state, batch))
 
-        return aggregate_metrics(metrics)
+        return collect_metrics(metrics)
 
     def _init_train_state(self, model, train_loader):
         key = jax.random.PRNGKey(self.random_state)
@@ -121,7 +127,9 @@ class Trainer:
             rngs={"dropout": state.dropout_key},
         )
 
-        return {
-            name: metric_fn(y_predict, label, where=mask, reduce_fn=jnp.mean)
-            for name, metric_fn in self.metric_fns.items()
-        }
+        results = {"query_id": batch["query_id"]}
+
+        for name, metric_fn in self.metric_fns.items():
+            results[name] = metric_fn(y_predict, label, where=mask, reduce_fn=None)
+
+        return results

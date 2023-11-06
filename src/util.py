@@ -1,8 +1,9 @@
-from collections import defaultdict
-from typing import Dict, List, Callable
+from typing import Dict, List
 
 import numpy as np
+import pandas as pd
 from flax.training import early_stopping
+from jax import Array
 
 
 class EarlyStopping:
@@ -32,19 +33,26 @@ class EarlyStopping:
         return self.state.has_improved
 
 
-def aggregate_metrics(results: List[Dict], reduce_fn: Callable = np.mean):
+def collect_metrics(results: List[Dict[str, Array]]) -> pd.DataFrame:
     """
-    Aggregates a list of metric dicts into a single dict:
+    Collects batches of metrics into a single pandas DataFrame:
     [
-        {"ndcg": 0.8, "MRR": 0.9},
-        {"ndcg": 0.3, "MRR": 0.2},
+        {"ndcg": [0.8, 0.3], "MRR": [0.9, 0.2]},
+        {"ndcg": [0.2, 0.1], "MRR": [0.1, 0.02]},
         ...
     ]
     """
-    agg_metrics = defaultdict(lambda: [])
+    # Convert Jax Arrays to numpy:
+    results = [dict_to_numpy(r) for r in results]
+    # Unroll values in batches into individual rows:
+    df = pd.DataFrame(results)
+    return df.explode(column=list(df.columns))
 
-    for result in results:
-        for name, metric in result.items():
-            agg_metrics[name].append(metric)
 
-    return {name: reduce_fn(metric) for name, metric in agg_metrics.items()}
+def aggregate_metrics(metric_df: pd.DataFrame, ignore_columns=["query_id"]) -> Dict:
+    metric_df = metric_df.drop(columns=ignore_columns)
+    return metric_df.mean(axis=0).to_dict()
+
+
+def dict_to_numpy(_dict: Dict[str, Array]) -> Dict[str, np.ndarray]:
+    return {k: np.array(v) for k, v in _dict.items()}
