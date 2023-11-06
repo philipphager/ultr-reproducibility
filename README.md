@@ -13,5 +13,5 @@ Select a model `["naive", "pbm", "two-tower"]` and loss `["pointwise", "listwise
 
 You can also train the PBM and Two Tower models using the DLA `["pointwise-dla", "listwise-dla"]` and RegressionEM `["pointwise-em", "listwise-em"]` loss. However, they expect that relevance and examination are not combined into a click prediction:  
 ```bash
- python main.py -m model=naive loss=pointwise model.tower_combination=NONE
+ python main.py -m model=two-towers loss=listwise-dla model.tower_combination=NONE
 ```
