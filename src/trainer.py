@@ -4,10 +4,10 @@ from typing import Dict, Callable
 
 import flax.linen as nn
 import jax
-import pandas as pd
 from flax.training import train_state
 from flax.training.train_state import TrainState
 from jax import jit
+from pandas import DataFrame
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -38,19 +38,22 @@ class Trainer:
         self.epochs = epochs
         self.early_stopping = early_stopping
 
-    def train(self, model: nn.Module, train_loader: DataLoader, val_loader: DataLoader):
+    def train(
+        self,
+        model: nn.Module,
+        train_loader: DataLoader,
+        val_loader: DataLoader,
+    ) -> TrainState:
         state = self._init_train_state(model, train_loader)
         best_model_state = None
 
         for epoch in range(self.epochs):
-            state = self.train_epoch(state, train_loader, f"Epoch: {epoch} - Training")
-            val_df = self.eval_epoch(state, val_loader, f"Epoch: {epoch} - Val")
+            state = self._train_epoch(state, train_loader, f"Epoch: {epoch} - Training")
+            val_df = self._eval_epoch(state, val_loader, f"Epoch: {epoch} - Val")
             val_metrics = aggregate_metrics(val_df)
 
             has_improved, should_stop = self.early_stopping.update(val_metrics)
-            logger.info(
-                f"Epoch: {epoch} - {val_metrics} - has_improved: {has_improved}"
-            )
+            logger.info(f"Epoch {epoch}: {val_metrics}, has_improved: {has_improved}")
 
             if has_improved:
                 best_model_state = state
@@ -61,28 +64,16 @@ class Trainer:
 
         return best_model_state
 
-    def test(self, state: TrainState, test_loader: DataLoader):
-        test_df = self.eval_epoch(state, test_loader, "Testing")
+    def test(
+        self,
+        state: TrainState,
+        test_loader: DataLoader,
+    ) -> DataFrame:
+        test_df = self._eval_epoch(state, test_loader, "Testing")
         test_metrics = aggregate_metrics(test_df)
         print_metric_table(test_metrics)
 
         return test_df
-
-    def train_epoch(self, state: TrainState, loader: DataLoader, description: str):
-        for batch in tqdm(loader, desc=description):
-            state, loss = self._train_step(state, batch)
-
-        return state
-
-    def eval_epoch(
-        self, state: TrainState, loader: DataLoader, description: str
-    ) -> pd.DataFrame:
-        metrics = []
-
-        for batch in tqdm(loader, desc=description):
-            metrics.append(self._eval_step(state, batch))
-
-        return collect_metrics(metrics)
 
     def _init_train_state(self, model, train_loader):
         key = jax.random.PRNGKey(self.random_state)
@@ -98,6 +89,20 @@ class Trainer:
             tx=self.optimizer,
             dropout_key=dropout_key,
         )
+
+    def _train_epoch(self, state, loader, description):
+        for batch in tqdm(loader, desc=description):
+            state, loss = self._train_step(state, batch)
+
+        return state
+
+    def _eval_epoch(self, state, loader, description):
+        metrics = []
+
+        for batch in tqdm(loader, desc=description):
+            metrics.append(self._eval_step(state, batch))
+
+        return collect_metrics(metrics)
 
     @partial(jit, static_argnums=(0,))
     def _train_step(self, state, batch):
