@@ -1,3 +1,10 @@
 defaults:
   - model: two-towers
   - loss: listwise-dla
+
+hydra:
+  job:
+    chdir: True
+  sweep:
+    dir: multirun
+    subdir: ${hydra.job.override_dirname}
