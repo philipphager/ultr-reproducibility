@@ -8,8 +8,8 @@ import pandas as pd
 from flax.training import train_state
 from flax.training.train_state import TrainState
 from jax import jit
-from rich.progress import track
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from src.log import print_metric_table
 from src.util import EarlyStopping, collect_metrics, aggregate_metrics
@@ -69,17 +69,17 @@ class Trainer:
         return test_df
 
     def train_epoch(self, state: TrainState, loader: DataLoader, description: str):
-        for batch in track(loader, description=description):
+        for batch in tqdm(loader, desc=description):
             state, loss = self._train_step(state, batch)
 
         return state
 
     def eval_epoch(
-        self, state: TrainState, data_loader: DataLoader, description: str
+        self, state: TrainState, loader: DataLoader, description: str
     ) -> pd.DataFrame:
         metrics = []
 
-        for batch in track(data_loader, description=description):
+        for batch in tqdm(loader, desc=description):
             metrics.append(self._eval_step(state, batch))
 
         return collect_metrics(metrics)
