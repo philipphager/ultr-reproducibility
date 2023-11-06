@@ -28,12 +28,11 @@ logging.basicConfig(
     ],
 )
 
+BAIDU_DATASET = "philipphager/baidu-ultr-606k"
+
 
 def load_train_data():
-    train_dataset = load_dataset(
-        "philipphager/baidu-ultr-606k", name="clicks", split="train"
-    )
-
+    train_dataset = load_dataset(BAIDU_DATASET, name="clicks", split="train")
     train_dataset.set_format("numpy")
 
     encode_media_type = LabelEncoder()
@@ -55,18 +54,16 @@ def load_train_data():
 
 def load_val_data():
     val_dataset = load_dataset(
-        "philipphager/baidu-ultr-606k", name="annotations", split="validation[:50%]"
+        BAIDU_DATASET, name="annotations", split="validation[:50%]"
     )
-
     val_dataset.set_format("numpy")
     return val_dataset
 
 
 def load_test_data():
     test_dataset = load_dataset(
-        "philipphager/baidu-ultr-606k", name="annotations", split="validation[50%:]"
+        BAIDU_DATASET, name="annotations", split="validation[50%:]"
     )
-
     test_dataset.set_format("numpy")
     return test_dataset
 
