@@ -82,7 +82,6 @@ def main(config: DictConfig):
         collate_fn=collate_fn,
         batch_size=16,
         num_workers=4,
-        shuffle=True,
     )
     val_loader = DataLoader(
         val_dataset,
