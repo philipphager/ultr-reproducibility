@@ -46,7 +46,7 @@ def collect_metrics(results: List[Dict[str, Array]]) -> pd.DataFrame:
     results = [dict_to_numpy(r) for r in results]
     # Unroll values in batches into individual rows:
     df = pd.DataFrame(results)
-    return df.explode(column=list(df.columns))
+    return df.explode(column=list(df.columns)).reset_index(drop=True)
 
 
 def aggregate_metrics(metric_df: pd.DataFrame, ignore_columns=["query_id"]) -> Dict:
