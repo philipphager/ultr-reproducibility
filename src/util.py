@@ -1,11 +1,13 @@
+from pathlib import Path
 from typing import Dict, List
 
-import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-from flax import linen as nn
 from flax.training import early_stopping
 from jax import Array
+from orbax.checkpoint import PyTreeCheckpointer
+
+from src.trainer import TrainState
 
 
 class EarlyStopping:
@@ -60,13 +62,6 @@ def dict_to_numpy(_dict: Dict[str, Array]) -> Dict[str, np.ndarray]:
     return {k: np.array(v) for k, v in _dict.items()}
 
 
-def get_position_bias(model, state, k: int = 20):
-    batch = {"position": jnp.arange(1, k + 1)}
-    examination_logits = model.apply(
-        state.params,
-        batch,
-        training=False,
-        rngs={"dropout": state.dropout_key},
-        method=model.predict_examination,
-    )
-    return nn.sigmoid(examination_logits)
+def save_state(state: TrainState, directory: Path, name: str = "best_state"):
+    checkpointer = PyTreeCheckpointer()
+    checkpointer.save(directory / name, state)

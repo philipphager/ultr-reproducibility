@@ -1,5 +1,7 @@
 import logging
+import os
 from functools import partial
+from pathlib import Path
 
 import hydra
 import jax
@@ -14,7 +16,7 @@ from torch.utils.data import DataLoader
 
 from src.data import LabelEncoder, Discretize, collate_fn
 from src.trainer import Trainer
-from src.util import EarlyStopping
+from src.util import EarlyStopping, save_state
 
 logging.basicConfig(
     level="INFO",
@@ -115,6 +117,8 @@ def main(config: DictConfig):
     best_state = trainer.train(model, trainer_loader, val_loader)
     test_df = trainer.test(model, best_state, test_loader)
     test_df.to_parquet("test.parquet")
+
+    save_state(best_state, Path(os.getcwd()), "best_state")
 
 
 if __name__ == "__main__":
