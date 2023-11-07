@@ -1,6 +1,6 @@
 defaults:
   - model: two-towers
-  - loss: listwise-dla
+  - loss: listwise
 
 hydra:
   job:
