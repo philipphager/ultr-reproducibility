@@ -33,14 +33,14 @@ class PositionBasedModel(nn.Module):
     ) -> Union[Array, Tuple[Array, Array]]:
         relevance = self.predict_relevance(batch, training)
         examination = self.predict_examination(batch, training)
-        return combine_towers(
-            examination.squeeze(),
-            relevance.squeeze(),
-            self.tower_combination,
-        )
+        return combine_towers(examination, relevance, self.tower_combination)
 
     def predict_relevance(self, batch, training: bool = False) -> Array:
-        return self.relevance_model(batch["query_document_embedding"], training)
+        return self.relevance_model(
+            batch["query_document_embedding"], training
+        ).squeeze()
 
     def predict_examination(self, batch, training: bool = False) -> Array:
-        return nn.sigmoid(self.examination_model(batch["position"])).squeeze()
+        return nn.sigmoid(
+            self.examination_model(batch["position"]),
+        ).squeeze()

@@ -113,7 +113,7 @@ def main(config: DictConfig):
         early_stopping=EarlyStopping(metric="dcg@10", patience=1),
     )
     best_state = trainer.train(model, trainer_loader, val_loader)
-    test_df = trainer.test(best_state, test_loader)
+    test_df = trainer.test(model, best_state, test_loader)
     test_df.to_parquet("test.parquet")
 
 
