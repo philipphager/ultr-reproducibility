@@ -68,10 +68,11 @@ class Trainer:
 
     def test(
         self,
+        model: nn.Module,
         state: TrainState,
         test_loader: DataLoader,
     ) -> DataFrame:
-        test_df = self._eval_epoch(state, test_loader, "Testing")
+        test_df = self._eval_epoch(model, state, test_loader, "Testing")
         test_metrics = aggregate_metrics(test_df)
         print_metric_table(test_metrics)
 
@@ -98,11 +99,11 @@ class Trainer:
 
         return state
 
-    def _eval_epoch(self, state, loader, description):
+    def _eval_epoch(self, model, state, loader, description):
         metrics = []
 
         for batch in tqdm(loader, desc=description):
-            metrics.append(self._eval_step(state, batch))
+            metrics.append(self._eval_step(model, state, batch))
 
         return collect_metrics(metrics)
 
