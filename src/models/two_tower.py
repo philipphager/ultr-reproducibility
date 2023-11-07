@@ -69,28 +69,26 @@ class TwoTowerModel(nn.Module):
     relevance_dropouts: List[float]
     tower_combination: TowerCombination
 
-    @nn.compact
-    def __call__(
-        self, batch, training: bool = False
-    ) -> Union[Array, Tuple[Array, Array]]:
-        relevance_model = Tower(
+    def setup(self) -> None:
+        self.relevance_model = Tower(
             layers=self.relevance_layers,
             dropouts=self.relevance_dropouts,
         )
+        self.bias_model = BiasTower(
+            layers=self.bias_layers,
+            dropouts=self.bias_dropouts,
+        )
 
-        relevance = relevance_model(batch["query_document_embedding"], training)
+    def __call__(
+        self, batch, training: bool = False
+    ) -> Union[Array, Tuple[Array, Array]]:
+        relevance = self.predict_relevance(batch, training)
+        examination = self.predict_examination(batch, training)
+        return combine_towers(examination, relevance, self.tower_combination)
 
-        if training:
-            bias_model = BiasTower(
-                layers=self.bias_layers,
-                dropouts=self.bias_dropouts,
-            )
-            bias = bias_model(batch, training)
+    def predict_relevance(self, batch, training: bool = False) -> Array:
+        x = batch["query_document_embedding"]
+        return self.relevance_model(x, training).squeeze()
 
-            return combine_towers(
-                bias.squeeze(),
-                relevance.squeeze(),
-                self.tower_combination,
-            )
-        else:
-            return relevance.squeeze()
+    def predict_examination(self, batch, training: bool = False) -> Array:
+        return self.bias_model(batch, training).squeeze()

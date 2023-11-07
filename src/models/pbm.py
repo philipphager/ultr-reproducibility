@@ -15,30 +15,29 @@ class PositionBasedModel(nn.Module):
 
     relevance_layers: List[int]
     relevance_dropouts: List[float]
-    n_positions: int
     tower_combination: Union[TowerCombination, str]
+    n_positions: int
 
-    @nn.compact
-    def __call__(
-        self, batch, training: bool = False
-    ) -> Union[Array, Tuple[Array, Array]]:
-        relevance_model = Tower(
+    def setup(self) -> None:
+        self.relevance_model = Tower(
             layers=self.relevance_layers,
             dropouts=self.relevance_dropouts,
         )
-        examination_model = nn.Embed(
+        self.examination_model = nn.Embed(
             num_embeddings=self.n_positions,
             features=1,
         )
 
-        relevance = relevance_model(batch["query_document_embedding"], training)
+    def __call__(
+        self, batch, training: bool = False
+    ) -> Union[Array, Tuple[Array, Array]]:
+        relevance = self.predict_relevance(batch, training)
+        examination = self.predict_examination(batch, training)
+        return combine_towers(examination, relevance, self.tower_combination)
 
-        if training:
-            examination = examination_model(batch["position"])
-            return combine_towers(
-                examination.squeeze(),
-                relevance.squeeze(),
-                self.tower_combination,
-            )
-        else:
-            return relevance.squeeze()
+    def predict_relevance(self, batch, training: bool = False) -> Array:
+        x = batch["query_document_embedding"]
+        return self.relevance_model(x, training).squeeze()
+
+    def predict_examination(self, batch, training: bool = False) -> Array:
+        return self.examination_model(batch["position"]).squeeze()
