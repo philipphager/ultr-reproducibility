@@ -36,9 +36,8 @@ class PositionBasedModel(nn.Module):
         return combine_towers(examination, relevance, self.tower_combination)
 
     def predict_relevance(self, batch, training: bool = False) -> Array:
-        return self.relevance_model(
-            batch["query_document_embedding"], training
-        ).squeeze()
+        x = batch["query_document_embedding"]
+        return self.relevance_model(x, training).squeeze()
 
     def predict_examination(self, batch, training: bool = False) -> Array:
         return self.examination_model(batch["position"]).squeeze()
