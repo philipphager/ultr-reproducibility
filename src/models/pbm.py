@@ -41,6 +41,4 @@ class PositionBasedModel(nn.Module):
         ).squeeze()
 
     def predict_examination(self, batch, training: bool = False) -> Array:
-        return self.examination_model(
-            batch["position"],
-        ).squeeze()
+        return self.examination_model(batch["position"]).squeeze()
