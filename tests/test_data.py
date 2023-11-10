@@ -48,12 +48,12 @@ def test_label_encoder(x, expected):
     "X, expected",
     [
         (
-                [np.array([2]), np.array([9]), np.array([5])],
-                [np.array([1]), np.array([2]), np.array([3])],
+            [np.array([2]), np.array([9]), np.array([5])],
+            [np.array([1]), np.array([2]), np.array([3])],
         ),
         (
-                [np.array([5, 4, 3]), np.array([500, 400, 300]), np.array([5, 400, 3])],
-                [np.array([1, 2, 3]), np.array([4, 5, 6]), np.array([1, 5, 3])],
+            [np.array([5, 4, 3]), np.array([500, 400, 300]), np.array([5, 400, 3])],
+            [np.array([1, 2, 3]), np.array([4, 5, 6]), np.array([1, 5, 3])],
         ),
     ],
 )
