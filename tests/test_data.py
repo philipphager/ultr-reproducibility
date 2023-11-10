@@ -69,6 +69,7 @@ def test_label_encoder_state(X, expected):
         (0, 0.3, 3, np.array([0, 0.001, 0.1, 0.19, 0.2]), np.array([1, 1, 2, 2, 3])),
         (0, 0.3, 3, np.array([-1, 0, 0.1, 0.2, 0.3]), np.array([0, 1, 2, 3, 4])),
         (-5, 5, 10, np.array([-5, -3, 0, 3, 5]), np.array([1, 3, 6, 9, 11])),
+        (0, 0.3, 3, np.array([[0, 0.001, 0.1, 0.19]]), np.array([[1, 1, 2, 2]])),
     ],
 )
 def test_digitize(low, high, buckets, x, expected):
