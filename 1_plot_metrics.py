@@ -5,9 +5,9 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from pages.components import sidebar
-from pages.utils.const import METRICS, MODELS, LOSSES
-from pages.utils.file import get_model_directories, parse_model_name
+from app.components import sidebar
+from app.utils.const import METRICS, MODELS, LOSSES
+from app.utils.file import get_model_directories, parse_model_name
 
 sidebar.draw()
 
@@ -30,11 +30,11 @@ def get_test_results(paths: List[Path]) -> pd.DataFrame:
 
 
 def plot_metrics(df):
-    metric = st.selectbox("Metric", METRICS)
-    models = st.multiselect("Models", MODELS, default=df.model.unique())
+    metric = st.sidebar.selectbox("Metric", METRICS)
+    models = st.sidebar.multiselect("Models", MODELS, default=df.model.unique())
     df = df[df.model.isin(models)]
 
-    color_by = st.selectbox("Color by", ["model", "loss"])
+    color_by = st.sidebar.selectbox("Color by", ["model", "loss"])
     color_domain = MODELS if color_by == "model" else LOSSES
 
     # Find global sorting order

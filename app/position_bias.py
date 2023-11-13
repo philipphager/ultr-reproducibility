@@ -1,5 +1,5 @@
 import streamlit as st
-from pages.components import sidebar
+from app.components import sidebar
 
 sidebar.draw()
 
