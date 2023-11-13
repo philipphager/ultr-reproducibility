@@ -31,7 +31,7 @@ def get_test_results(paths: List[Path]) -> pd.DataFrame:
 
 def plot_metrics(df):
     metric = st.selectbox("Metric", METRICS)
-    models = st.multiselect("Models", MODELS)
+    models = st.multiselect("Models", MODELS, default=df.model.unique())
     df = df[df.model.isin(models)]
 
     color_by = st.selectbox("Color by", ["model", "loss"])
@@ -44,8 +44,8 @@ def plot_metrics(df):
 
     bars = (
         alt.Chart(df, width=700, height=400)
-            .mark_bar()
-            .encode(
+        .mark_bar()
+        .encode(
             x=alt.X("name:N").axis(labelAngle=-45, labelOverlap=False).sort(sort),
             y=alt.Y(f"mean({metric})").title(metric),
             color=alt.Color(color_by).title(color_by).scale(domain=color_domain),
@@ -54,8 +54,8 @@ def plot_metrics(df):
 
     error = (
         alt.Chart(df, width=700, height=400)
-            .mark_errorbar(extent="ci")
-            .encode(
+        .mark_errorbar(extent="ci")
+        .encode(
             x=alt.X("name:N").sort(sort),
             y=alt.Y(f"{metric}").title(metric),
             strokeWidth=alt.value(2),
