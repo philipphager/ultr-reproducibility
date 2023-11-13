@@ -11,7 +11,7 @@ def assert_directory_exists(path: Path):
 
 def get_model_directory() -> Path:
     model_directory = st.sidebar.text_input("Model directory", "multirun/")
-    return Path(model_directory).absolute()
+    return Path(model_directory)
 
 
 def draw():
