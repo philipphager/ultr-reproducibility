@@ -64,4 +64,4 @@ def dict_to_numpy(_dict: Dict[str, Array]) -> Dict[str, np.ndarray]:
 
 def save_state(state: TrainState, directory: Path, name: str = "best_state"):
     checkpointer = PyTreeCheckpointer()
-    checkpointer.save(directory.resolve() / name, state)
+    checkpointer.save(directory.resolve() / name, state, force=True)
