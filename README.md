@@ -15,3 +15,13 @@ You can also train the PBM and Two Tower models using the DLA `["pointwise-dla",
 ```bash
  python main.py -m model=two-towers loss=listwise-dla model.tower_combination=NONE
 ```
+
+## Dashboards
+You can run streamlit apps to inspect test metrics:
+```bash
+streamlit run 1_plot_metrics.py
+```
+Or plot the learned position bias of models:
+```bash
+streamlit run 2_plot_bias.py
+```
