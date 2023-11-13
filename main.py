@@ -5,12 +5,13 @@ import hydra
 import jax
 import optax
 import rax
+import torch
 from datasets import load_dataset
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from rich.console import Console
 from rich.logging import RichHandler
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 
 from src.data import LabelEncoder, Discretize, collate_fn
 from src.trainer import Trainer
@@ -53,26 +54,18 @@ def load_train_data():
 
 
 def load_val_data():
-    val_dataset = load_dataset(
-        BAIDU_DATASET, name="annotations", split="validation[:50%]"
-    )
+    val_dataset = load_dataset(BAIDU_DATASET, name="annotations", split="validation")
     val_dataset.set_format("numpy")
     return val_dataset
 
 
-def load_test_data():
-    test_dataset = load_dataset(
-        BAIDU_DATASET, name="annotations", split="validation[50%:]"
-    )
-    test_dataset.set_format("numpy")
-    return test_dataset
-
-
 @hydra.main(version_base="1.2", config_path="config", config_name="config")
 def main(config: DictConfig):
+    torch.manual_seed(config.random_state)
+
     train_dataset = load_train_data()
     val_dataset = load_val_data()
-    test_dataset = load_test_data()
+    val_dataset, test_dataset = random_split(val_dataset, config.val_test_split)
 
     trainer_loader = DataLoader(
         train_dataset,
