@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from app.components import sidebar
 from app.utils.file import get_model_directories, parse_model_name
 from app.utils.model import load_state
-from src.data import LabelEncoder, Discretize, collate_fn
+from src.data import LabelEncoder, Digitize, collate_fn
 
 
 def get_train_data():
@@ -23,9 +23,9 @@ def get_train_data():
     train_dataset.set_format("numpy")
 
     encode_media_type = LabelEncoder()
-    encode_serp_height = Discretize(0, 1024, 16)
-    encode_displayed_time = Discretize(0, 128, 16)
-    encode_slipoff = Discretize(0, 10, 10)
+    encode_serp_height = Digitize(0, 1024, 16)
+    encode_displayed_time = Digitize(0, 128, 16)
+    encode_slipoff = Digitize(0, 10, 10)
 
     def encode_bias(batch):
         batch["media_type"] = encode_media_type(batch["media_type"])
