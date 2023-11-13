@@ -14,13 +14,13 @@ sidebar.draw()
 st.markdown("# Test Metrics")
 
 
-def get_test_results(paths: List[Path]) -> pd.DataFrame:
+def get_results(paths: List[Path], eval_type: str) -> pd.DataFrame:
     dfs = []
 
     for path in paths:
         options = parse_model_name(path)
 
-        df = pd.read_parquet(path / "test.parquet")
+        df = pd.read_parquet(path / f"{eval_type}.parquet")
         df["model"] = options["model"]
         df["loss"] = options["loss"]
         df["name"] = f"{options['model']}, {options['loss']}"
@@ -67,12 +67,13 @@ def plot_metrics(df):
 
 model_directory = st.session_state["model_directory"]
 model_directories = get_model_directories(model_directory)
+eval_type = st.sidebar.selectbox("Evaluation", ["val", "test"])
 
 if len(model_directories) == 0:
     st.warning("No evaluation results to plot.")
     st.stop()
 
-test_df = get_test_results(model_directories)
+test_df = get_results(model_directories, eval_type)
 
 with st.expander("Inspect raw data"):
     top_n = st.number_input("Top n", 1_000, step=100)
