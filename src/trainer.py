@@ -1,5 +1,7 @@
 import logging
+import os
 from functools import partial
+from pathlib import Path
 from typing import Dict, Callable
 
 import flax.linen as nn
@@ -12,7 +14,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from src.log import print_metric_table
-from src.util import EarlyStopping, collect_metrics, aggregate_metrics
+from src.util import EarlyStopping, collect_metrics, aggregate_metrics, save_state
 
 logger = logging.getLogger("rich")
 
@@ -59,6 +61,7 @@ class Trainer:
 
             if has_improved:
                 best_model_state = state
+                save_state(state, Path(os.getcwd()), "best_state")
 
             if should_stop:
                 logger.info(f"Epoch: {epoch}: Stopping early")
