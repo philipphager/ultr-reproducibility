@@ -71,10 +71,11 @@ class Trainer:
         model: nn.Module,
         state: TrainState,
         test_loader: DataLoader,
+        description: str = "Testing",
     ) -> DataFrame:
-        test_df = self._eval_epoch(model, state, test_loader, "Testing")
+        test_df = self._eval_epoch(model, state, test_loader, description)
         test_metrics = aggregate_metrics(test_df)
-        print_metric_table(test_metrics)
+        print_metric_table(test_metrics, description)
 
         return test_df
 
