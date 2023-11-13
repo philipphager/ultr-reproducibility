@@ -16,7 +16,6 @@ from app.utils.model import load_state
 from src.data import LabelEncoder, Discretize, collate_fn
 
 
-@st.cache_data
 def get_train_data():
     train_dataset = load_dataset(
         "philipphager/baidu-ultr-606k", name="clicks", split="train[:1%]"
@@ -90,13 +89,13 @@ def get_examination(model, state, batch, normalize):
 def plot_position_bias(df):
     return (
         alt.Chart(df, width=800)
-            .mark_line(point=True)
-            .encode(
+        .mark_line(point=True)
+        .encode(
             x=alt.X("position:O").title("Position").axis(labelAngle=0),
             y=alt.Y("examination:Q").title("Examination").scale(domain=(0, 1)),
             color=alt.Color("name").title("Model"),
         )
-            .configure_point(size=75)
+        .configure_point(size=75)
     )
 
 
