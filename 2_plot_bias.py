@@ -104,7 +104,6 @@ sidebar.draw()
 
 st.markdown("# Inspect Bias")
 model_directory = st.session_state["model_directory"]
-
 model_directories = get_model_directories(model_directory)
 model_directories = [f for f in model_directories if "naive" not in f.name]
 
