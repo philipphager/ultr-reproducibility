@@ -122,10 +122,10 @@ elif data_type == "Random Train Batch":
     loader = DataLoader(train_dataset, collate_fn=collate_fn, shuffle=True)
     batch = next(iter(loader))
 
+normalize = st.sidebar.toggle("Normalize bias by first position", False)
+
 st.write(batch)
 st.divider()
-
-normalize = st.toggle("Normalize bias by first position", False)
 
 dfs = []
 
