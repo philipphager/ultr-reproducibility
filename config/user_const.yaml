@@ -1,0 +1,2 @@
+cache_dir: ~/.cache/huggingface/datasets
+run_dir: multirun

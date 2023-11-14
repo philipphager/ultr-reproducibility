@@ -5,6 +5,7 @@ from pathlib import Path
 
 import hydra
 import jax
+
 import optax
 import rax
 from datasets import load_dataset
@@ -33,8 +34,8 @@ logging.basicConfig(
 BAIDU_DATASET = "philipphager/baidu-ultr-606k"
 
 
-def load_train_data():
-    train_dataset = load_dataset(BAIDU_DATASET, name="clicks", split="train")
+def load_train_data(cache_dir: str):
+    train_dataset = load_dataset(BAIDU_DATASET, name="clicks", split="train", cache_dir=cache_dir)
     train_dataset.set_format("numpy")
 
     encode_media_type = LabelEncoder()
@@ -54,17 +55,17 @@ def load_train_data():
     return train_dataset.map(encode_bias)
 
 
-def load_val_data():
+def load_val_data(cache_dir: str):
     val_dataset = load_dataset(
-        BAIDU_DATASET, name="annotations", split="validation[:50%]"
+        BAIDU_DATASET, name="annotations", split="validation[:50%]", cache_dir=cache_dir
     )
     val_dataset.set_format("numpy")
     return val_dataset
 
 
-def load_test_data():
+def load_test_data(cache_dir: str):
     test_dataset = load_dataset(
-        BAIDU_DATASET, name="annotations", split="validation[50%:]"
+        BAIDU_DATASET, name="annotations", split="validation[50%:]", cache_dir=cache_dir
     )
     test_dataset.set_format("numpy")
     return test_dataset
@@ -72,9 +73,9 @@ def load_test_data():
 
 @hydra.main(version_base="1.2", config_path="config", config_name="config")
 def main(config: DictConfig):
-    train_dataset = load_train_data()
-    val_dataset = load_val_data()
-    test_dataset = load_test_data()
+    train_dataset = load_train_data(cache_dir=config.cache_dir)
+    val_dataset = load_val_data(cache_dir=config.cache_dir)
+    test_dataset = load_test_data(cache_dir=config.cache_dir)
 
     trainer_loader = DataLoader(
         train_dataset,
