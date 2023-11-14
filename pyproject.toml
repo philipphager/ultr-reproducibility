@@ -1,24 +1,32 @@
 [tool.poetry]
 name = "baidu-reproducibility"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
-authors = ["Philipp Hager <p.k.hager@uva.nl>"]
+authors = ["Philipp Hager <p.k.hager@uva.nl>", "Romain Deffayet <r.e.deffayet@uva.nl>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.13"
-jax = "^0.4.19"
+python = ">=3.9,<3.9.7 || >3.9.7,<3.13" # Streamlit requires !=3.9.7
+jaxlib = {version = "0.4.20+cuda11.cudnn86", source = "jax_cuda"}
+jax = {version = "0.4.20", extras=["cuda11_local"]}
 flax = "^0.7.5"
-optax = "^0.1.7"
 torch = "^2.1.0"
 datasets = "^2.14.6"
-pyarrow = "^13.0.0"
+pyarrow = "^14.0.0"
 rax = "^0.3.0"
 typing-extensions = "^4.8.0"
 rich = "^13.6.0"
 hydra-core = "^1.3.2"
 jupyterlab = "^4.0.8"
 hydra-submitit-launcher = "^1.2.0"
+altair = "^5.1.0"
+streamlit = "^1.28.1"
+
+
+[[tool.poetry.source]]
+name = "jax_cuda"
+url = "https://storage.googleapis.com/jax-releases/jax_cuda_releases.html"
+priority = "explicit"
 
 
 [build-system]

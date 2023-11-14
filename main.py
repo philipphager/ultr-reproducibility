@@ -3,6 +3,7 @@ from functools import partial
 
 import hydra
 import jax
+
 import optax
 import rax
 import torch
@@ -32,8 +33,8 @@ logging.basicConfig(
 BAIDU_DATASET = "philipphager/baidu-ultr-1m"
 
 
-def load_train_data():
-    train_dataset = load_dataset(BAIDU_DATASET, name="clicks", split="train")
+def load_train_data(cache_dir: str):
+    train_dataset = load_dataset(BAIDU_DATASET, name="clicks", split="train", cache_dir=cache_dir)
     train_dataset.set_format("numpy")
 
     encode_media_type = LabelEncoder()
@@ -52,9 +53,10 @@ def load_train_data():
 
     return train_dataset.map(encode_bias)
 
-
-def load_val_data():
-    val_dataset = load_dataset(BAIDU_DATASET, name="annotations", split="validation")
+def load_val_data(cache_dir: str):
+    val_dataset = load_dataset(
+        BAIDU_DATASET, name="annotations", split="validation", cache_dir=cache_dir
+    )
     val_dataset.set_format("numpy")
     return val_dataset
 
@@ -62,9 +64,9 @@ def load_val_data():
 @hydra.main(version_base="1.2", config_path="config", config_name="config")
 def main(config: DictConfig):
     torch.manual_seed(config.random_state)
-
-    train_dataset = load_train_data()
-    val_dataset = load_val_data()
+    
+    train_dataset = load_train_data(cache_dir=config.cache_dir)
+    val_dataset = load_val_data(cache_dir=config.cache_dir)
     val_dataset, test_dataset = random_split(val_dataset, config.val_test_split)
 
     trainer_loader = DataLoader(
