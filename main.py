@@ -12,9 +12,9 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from rich.console import Console
 from rich.logging import RichHandler
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 
-from src.data import collate_fn, hash_labels, discretize
+from src.data import collate_fn, hash_labels, discretize, stratified_split
 from src.trainer import Trainer
 from src.util import EarlyStopping
 
@@ -65,7 +65,13 @@ def main(config: DictConfig):
 
     train_dataset = load_train_data(config.cache_dir, config.num_workers)
     val_dataset = load_val_data(config.cache_dir)
-    val_dataset, test_dataset = random_split(val_dataset, config.val_test_split)
+    val_dataset, test_dataset = stratified_split(
+        val_dataset,
+        shuffle=True,
+        random_state=config.random_state,
+        test_size=0.5,
+        stratify="frequency_bucket",
+    )
 
     trainer_loader = DataLoader(
         train_dataset,

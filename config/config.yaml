@@ -5,7 +5,6 @@ defaults:
   - user_const
 
 random_state: 381
-val_test_split: [0.5, 0.5]
 
 hydra:
   job:
