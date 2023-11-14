@@ -3,6 +3,8 @@ from typing import List, Dict
 
 import mmh3
 import numpy as np
+from datasets import Dataset
+from sklearn.model_selection import train_test_split
 
 COLUMNS = {
     "query_id": {"padded": False, "dtype": int},
@@ -44,6 +46,29 @@ def collate_fn(samples: List[Dict[str, np.ndarray]]):
         column: np.array(features, dtype=COLUMNS[column]["dtype"])
         for column, features in batch.items()
     }
+
+
+def stratified_split(
+    dataset: Dataset,
+    shuffle: bool,
+    random_state: int,
+    test_size: float,
+    stratify: str,
+):
+    """
+    Stratify a train/test split of a Huggingface dataset.
+    While huggingface implements stratification, this function enables stratification
+    on all columns, not only the dataset's class label.
+    """
+    idx = np.arange(len(dataset))
+    train_idx, test_idx = train_test_split(
+        idx,
+        stratify=dataset[stratify],
+        shuffle=shuffle,
+        test_size=test_size,
+        random_state=random_state,
+    )
+    return dataset.select(train_idx), dataset.select(test_idx)
 
 
 def pad(x: np.ndarray, max_n: int):
