@@ -1,6 +1,7 @@
 from collections import defaultdict
 from typing import List, Dict
 
+import mmh3
 import numpy as np
 
 COLUMNS = {
@@ -64,35 +65,25 @@ def pad(x: np.ndarray, max_n: int):
     return np.pad(x, pad_width, mode="constant")
 
 
-class LabelEncoder:
-    def __init__(self):
-        self.value2id = {}
-        self.max_id = 1
+def hash_labels(x: np.ndarray, buckets: int, random_state: int = 0) -> np.ndarray:
+    """
+    Use a fast and robust non-cryptographic hash function to map class labels to
+    a fixed number of buckets into the range(1, buckets + 1).
+    E.g.: np.array([1301239102, 12039, 12309]) -> np.array([5, 1, 20])
+    """
 
-    def __call__(self, x):
-        return np.array(list(map(self.encode, x)))
+    def hash(i: int) -> int:
+        hash_value = mmh3.hash(str(i), seed=random_state)
+        bucket = hash_value % buckets
+        return bucket + 1
 
-    def encode(self, value):
-        if value not in self.value2id:
-            self.value2id[value] = self.max_id
-            self.max_id += 1
-
-        return self.value2id[value]
-
-    def __len__(self):
-        return len(self.value2id)
+    return np.array(list(map(hash, x)))
 
 
-class Discretize:
-    def __init__(self, low: float, high: float, buckets: int):
-        """
-        Bucket a continuous variable into n buckets. Indexing starts at 1 to avoid
-        confusion with the padding value 0.
-        """
-        self.low = low
-        self.high = high
-        self.buckets = buckets
-        self.boundaries = np.linspace(low, high, num=buckets + 1)
-
-    def __call__(self, x):
-        return np.digitize(x, self.boundaries, right=False)
+def discretize(x: np.ndarray, low: float, high: float, buckets: int):
+    """
+    Bucket a continuous variable into n buckets. Indexing starts at 1 to avoid
+    confusion with the padding value 0.
+    """
+    boundaries = np.linspace(low, high, num=buckets + 1)
+    return np.digitize(x, boundaries, right=False)

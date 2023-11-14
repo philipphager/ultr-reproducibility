@@ -3,7 +3,6 @@ from functools import partial
 
 import hydra
 import jax
-
 import optax
 import rax
 import torch
@@ -14,7 +13,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader, random_split
 
-from src.data import LabelEncoder, Discretize, collate_fn
+from src.data import collate_fn, hash_labels, discretize
 from src.trainer import Trainer
 from src.util import EarlyStopping
 
@@ -30,28 +29,26 @@ logging.basicConfig(
     ],
 )
 
-BAIDU_DATASET = "philipphager/baidu-ultr-1m"
+BAIDU_DATASET = "philipphager/baidu-ultr"
 
 
 def load_train_data(cache_dir: str):
-    train_dataset = load_dataset(BAIDU_DATASET, name="clicks", split="train", cache_dir=cache_dir)
+    train_dataset = load_dataset(
+        BAIDU_DATASET, name="clicks", split="train", cache_dir=cache_dir
+    )
     train_dataset.set_format("numpy")
 
-    encode_media_type = LabelEncoder()
-    encode_serp_height = Discretize(0, 1024, 16)
-    encode_displayed_time = Discretize(0, 128, 16)
-    encode_slipoff = Discretize(0, 10, 10)
-
     def encode_bias(batch):
-        batch["media_type"] = encode_media_type(batch["media_type"])
-        batch["displayed_time"] = encode_displayed_time(batch["displayed_time"])
-        batch["serp_height"] = encode_serp_height(batch["serp_height"])
-        batch["slipoff_count_after_click"] = encode_slipoff(
-            batch["slipoff_count_after_click"]
+        batch["media_type"] = hash_labels(batch["media_type"], 10_000)
+        batch["displayed_time"] = discretize(batch["displayed_time"], 0, 1024, 16)
+        batch["serp_height"] = discretize(batch["serp_height"], 0, 128, 16)
+        batch["slipoff_count_after_click"] = discretize(
+            batch["slipoff_count_after_click"], 0, 10, 10
         )
         return batch
 
-    return train_dataset.map(encode_bias)
+    return train_dataset.map(encode_bias, num_proc=8)
+
 
 def load_val_data(cache_dir: str):
     val_dataset = load_dataset(
@@ -64,7 +61,7 @@ def load_val_data(cache_dir: str):
 @hydra.main(version_base="1.2", config_path="config", config_name="config")
 def main(config: DictConfig):
     torch.manual_seed(config.random_state)
-    
+
     train_dataset = load_train_data(cache_dir=config.cache_dir)
     val_dataset = load_val_data(cache_dir=config.cache_dir)
     val_dataset, test_dataset = random_split(val_dataset, config.val_test_split)
