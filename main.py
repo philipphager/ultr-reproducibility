@@ -33,7 +33,7 @@ logging.basicConfig(
 BAIDU_DATASET = "philipphager/baidu-ultr"
 
 
-def load_train_data(cache_dir: str):
+def load_train_data(cache_dir: str, num_workers: int):
     train_dataset = load_dataset(
         BAIDU_DATASET, name="clicks", split="train", cache_dir=cache_dir
     )
@@ -48,7 +48,7 @@ def load_train_data(cache_dir: str):
         )
         return batch
 
-    return train_dataset.map(encode_bias, num_proc=8)
+    return train_dataset.map(encode_bias, num_proc=num_workers)
 
 
 def load_val_data(cache_dir: str):
@@ -63,8 +63,8 @@ def load_val_data(cache_dir: str):
 def main(config: DictConfig):
     torch.manual_seed(config.random_state)
 
-    train_dataset = load_train_data(cache_dir=config.cache_dir)
-    val_dataset = load_val_data(cache_dir=config.cache_dir)
+    train_dataset = load_train_data(config.cache_dir, config.num_workers)
+    val_dataset = load_val_data(config.cache_dir)
     val_dataset, test_dataset = random_split(val_dataset, config.val_test_split)
 
     trainer_loader = DataLoader(
