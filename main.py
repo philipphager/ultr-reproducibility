@@ -41,8 +41,8 @@ def load_train_data(cache_dir: str, num_workers: int):
 
     def encode_bias(batch):
         batch["media_type"] = hash_labels(batch["media_type"], 10_000)
-        batch["displayed_time"] = discretize(batch["displayed_time"], 0, 1024, 16)
-        batch["serp_height"] = discretize(batch["serp_height"], 0, 128, 16)
+        batch["displayed_time"] = discretize(batch["displayed_time"], 0, 128, 16)
+        batch["serp_height"] = discretize(batch["serp_height"], 0, 1024, 16)
         batch["slipoff_count_after_click"] = discretize(
             batch["slipoff_count_after_click"], 0, 10, 10
         )
