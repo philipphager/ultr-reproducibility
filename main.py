@@ -73,14 +73,14 @@ def main(config: DictConfig):
         train_dataset,
         collate_fn=collate_fn,
         batch_size=16,
-        num_workers=8,
+        num_workers=config.num_workers,
         pin_memory=True,
     )
     val_loader = DataLoader(
         val_dataset,
         collate_fn=collate_fn,
         batch_size=16,
-        num_workers=4,
+        num_workers=config.num_workers,
     )
     test_loader = DataLoader(
         test_dataset,

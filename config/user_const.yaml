@@ -1,2 +1,3 @@
-cache_dir: ~/.cache/huggingface/datasets
+cache_dir: ~/.cache/huggingface/datasets/
 run_dir: multirun
+num_workers: 6
