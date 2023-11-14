@@ -4,6 +4,7 @@ from functools import partial
 import hydra
 import jax
 import optax
+import pyarrow
 import rax
 import torch
 from datasets import load_dataset
@@ -23,7 +24,7 @@ logging.basicConfig(
     datefmt="[%X]",
     handlers=[
         RichHandler(
-            tracebacks_suppress=[jax],
+            tracebacks_suppress=[jax, pyarrow],
             console=Console(width=800),
         )
     ],
