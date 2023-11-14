@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
 
-from src.data import pad, LabelEncoder, Digitize
+from src.data import pad, hash_labels, discretize
 
 
 @pytest.mark.parametrize(
@@ -32,35 +32,35 @@ def test_pad_2d(x, max_n, expected):
 
 
 @pytest.mark.parametrize(
-    "x, expected",
+    "x, buckets",
     [
-        (np.array([0, 5, 512, 978, 93481023981]), np.array([1, 2, 3, 4, 5])),
-        (np.array([5, 10, 5, 10, 10]), np.array([1, 2, 1, 2, 2])),
+        (np.array([0, 5, 512, 978, 93481023981]), 10),
+        (np.array([5, 10, 5, 10, 10]), 1),
+        (np.random.randint(0, 1_000_000, (1000,)), 10),
     ],
 )
-def test_label_encoder(x, expected):
-    encoder = LabelEncoder()
-    actual = encoder(x)
-    assert_array_equal(actual, expected)
+def test_hash_labels(x, buckets):
+    actual = hash_labels(x, buckets)
+
+    assert len(set(actual)) <= buckets
+    assert min(actual) >= 1
+    assert max(actual) <= buckets
 
 
 @pytest.mark.parametrize(
-    "X, expected",
+    "x, buckets, expected_collision_rate",
     [
-        (
-            [np.array([2]), np.array([9]), np.array([5])],
-            [np.array([1]), np.array([2]), np.array([3])],
-        ),
-        (
-            [np.array([5, 4, 3]), np.array([500, 400, 300]), np.array([5, 400, 3])],
-            [np.array([1, 2, 3]), np.array([4, 5, 6]), np.array([1, 5, 3])],
-        ),
+        (np.random.randint(0, 1000, (10,)), 1_000, 0.01),
+        (np.random.randint(0, 1000, (100,)), 1_000, 0.1),
+        (np.random.randint(0, 1000, (100,)), 10_000, 0.05),
+        (np.random.randint(0, 1_000_000, (1_000,)), 10_000, 0.1),
     ],
 )
-def test_label_encoder_state(X, expected):
-    encoder = LabelEncoder()
-    actual = [encoder(x) for x in X]
-    assert_array_equal(actual, expected)
+def test_hash_collisions(x, buckets, expected_collision_rate):
+    actual = hash_labels(x, buckets)
+
+    collision_rate = 1 - (len(set(actual)) / len(set(x)))
+    assert collision_rate <= expected_collision_rate, collision_rate
 
 
 @pytest.mark.parametrize(
@@ -73,6 +73,5 @@ def test_label_encoder_state(X, expected):
     ],
 )
 def test_digitize(low, high, buckets, x, expected):
-    digitize = Digitize(low=low, high=high, buckets=buckets)
-    actual = digitize(x)
+    actual = discretize(x, low=low, high=high, buckets=buckets)
     assert_array_equal(actual, expected)
