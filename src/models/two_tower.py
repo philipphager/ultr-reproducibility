@@ -17,7 +17,7 @@ class BiasTower(nn.Module):
         self, batch, training: bool = False
     ) -> Union[Array, Tuple[Array, Array]]:
         position = nn.Embed(num_embeddings=50, features=8)
-        media_type = nn.Embed(num_embeddings=1_000, features=8)
+        media_type = nn.Embed(num_embeddings=10_001, features=8)
         serp_height = nn.Embed(num_embeddings=18, features=8)
         displayed_time = nn.Embed(num_embeddings=18, features=8)
         slipoff_count = nn.Embed(num_embeddings=18, features=8)
