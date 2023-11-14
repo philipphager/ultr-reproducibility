@@ -1,23 +1,22 @@
 import logging
-import os
 from functools import partial
-from pathlib import Path
 
 import hydra
 import jax
 
 import optax
 import rax
+import torch
 from datasets import load_dataset
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from rich.console import Console
 from rich.logging import RichHandler
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 
 from src.data import LabelEncoder, Discretize, collate_fn
 from src.trainer import Trainer
-from src.util import EarlyStopping, save_state
+from src.util import EarlyStopping
 
 logging.basicConfig(
     level="INFO",
@@ -31,7 +30,7 @@ logging.basicConfig(
     ],
 )
 
-BAIDU_DATASET = "philipphager/baidu-ultr-606k"
+BAIDU_DATASET = "philipphager/baidu-ultr-1m"
 
 
 def load_train_data(cache_dir: str):
@@ -54,28 +53,21 @@ def load_train_data(cache_dir: str):
 
     return train_dataset.map(encode_bias)
 
-
 def load_val_data(cache_dir: str):
     val_dataset = load_dataset(
-        BAIDU_DATASET, name="annotations", split="validation[:50%]", cache_dir=cache_dir
+        BAIDU_DATASET, name="annotations", split="validation", cache_dir=cache_dir
     )
     val_dataset.set_format("numpy")
     return val_dataset
 
 
-def load_test_data(cache_dir: str):
-    test_dataset = load_dataset(
-        BAIDU_DATASET, name="annotations", split="validation[50%:]", cache_dir=cache_dir
-    )
-    test_dataset.set_format("numpy")
-    return test_dataset
-
-
 @hydra.main(version_base="1.2", config_path="config", config_name="config")
 def main(config: DictConfig):
+    torch.manual_seed(config.random_state)
+    
     train_dataset = load_train_data(cache_dir=config.cache_dir)
     val_dataset = load_val_data(cache_dir=config.cache_dir)
-    test_dataset = load_test_data(cache_dir=config.cache_dir)
+    val_dataset, test_dataset = random_split(val_dataset, config.val_test_split)
 
     trainer_loader = DataLoader(
         train_dataset,
@@ -113,7 +105,7 @@ def main(config: DictConfig):
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
         epochs=25,
-        early_stopping=EarlyStopping(metric="dcg@10", patience=1),
+        early_stopping=EarlyStopping(metric="dcg@10", patience=2),
     )
     best_state = trainer.train(model, trainer_loader, val_loader)
 
@@ -122,8 +114,6 @@ def main(config: DictConfig):
 
     test_df = trainer.test(model, best_state, test_loader, "Testing")
     test_df.to_parquet("test.parquet")
-
-    save_state(best_state, Path(os.getcwd()), "best_state")
 
 
 if __name__ == "__main__":
