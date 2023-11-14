@@ -29,7 +29,7 @@ logging.basicConfig(
     ],
 )
 
-BAIDU_DATASET = "philipphager/baidu-ultr-2.4m"
+BAIDU_DATASET = "philipphager/baidu-ultr"
 
 
 def load_train_data(cache_dir: str):
