@@ -1,5 +1,5 @@
 import enum
-from typing import Union, Tuple, List
+from typing import Union, Tuple, List, Dict
 
 import jax.numpy as jnp
 from flax import linen as nn
@@ -11,28 +11,24 @@ from src.models.base import Tower
 class BiasTower(nn.Module):
     layers: List[int]
     dropouts: List[float]
+    column_embeddings: Dict[str, int]
+    embedding_dims: int
 
     @nn.compact
     def __call__(
         self, batch, training: bool = False
     ) -> Union[Array, Tuple[Array, Array]]:
-        position = nn.Embed(num_embeddings=50, features=8)
-        media_type = nn.Embed(num_embeddings=10_001, features=8)
-        serp_height = nn.Embed(num_embeddings=18, features=8)
-        displayed_time = nn.Embed(num_embeddings=18, features=8)
-        slipoff_count = nn.Embed(num_embeddings=18, features=8)
+        embeddings = []
 
-        x = jnp.concatenate(
-            [
-                position(batch["position"]),
-                media_type(batch["media_type"]),
-                displayed_time(batch["displayed_time"]),
-                serp_height(batch["serp_height"]),
-                slipoff_count(batch["slipoff_count_after_click"]),
-            ],
-            axis=-1,
-        )
+        for column, num_embeddings in self.column_embeddings.items():
+            layer = nn.Embed(
+                num_embeddings=num_embeddings,
+                features=self.embedding_dims,
+            )
+            embedding = layer(batch[column])
+            embeddings.append(embedding)
 
+        x = jnp.concatenate(embeddings, axis=-1)
         bias_model = Tower(layers=self.layers, dropouts=self.dropouts)
         return bias_model(x, training)
 
@@ -65,6 +61,7 @@ class TwoTowerModel(nn.Module):
 
     bias_layers: List[int]
     bias_dropouts: List[float]
+    bias_embeddings: Dict[str, int]
     relevance_layers: List[int]
     relevance_dropouts: List[float]
     tower_combination: TowerCombination
@@ -77,6 +74,8 @@ class TwoTowerModel(nn.Module):
         self.bias_model = BiasTower(
             layers=self.bias_layers,
             dropouts=self.bias_dropouts,
+            column_embeddings=self.bias_embeddings,
+            embedding_dims=8,
         )
 
     def __call__(

@@ -2,6 +2,13 @@ defaults:
   - base
 
 _target_: src.models.TwoTowerModel
-bias_layers: [512, 256, 128]
-bias_dropouts: [0, 0.1, 0.1]
+bias_layers: [ 512, 256, 128 ]
+bias_dropouts: [ 0, 0.1, 0.1 ]
+bias_embeddings:
+  position: 50
+  media_type: 10_001
+  displayed_time: 18
+  serp_height: 18
+  slipoff_count_after_click: 11
+
 tower_combination: ADDITIVE
