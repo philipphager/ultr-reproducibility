@@ -1,3 +1,5 @@
 cache_dir: ~/.cache/huggingface/datasets/
 run_dir: multirun
-num_workers: 6
+num_workers: 8
+wandb_project_name: baidu-reproducibility
+wandb_entity: cm-offline-metrics
