@@ -10,7 +10,7 @@ python = ">=3.9,<3.9.7 || >3.9.7,<3.13" # Streamlit requires !=3.9.7
 jaxlib = {version = "0.4.20+cuda11.cudnn86", source = "jax_cuda"}
 jax = {version = "0.4.20", extras=["cuda11_local"]}
 flax = "^0.7.5"
-torch = "^2.1.0"
+torch = ">=2.0.0, !=2.0.1, !=2.1.0" # Weird poetry bug
 datasets = "^2.14.6"
 pyarrow = "^14.0.0"
 scikit-learn = "^1.3.2"

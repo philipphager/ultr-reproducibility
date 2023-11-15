@@ -13,5 +13,6 @@ wandb
 outputs
 multirun
 
-# Misccat
+# Misc
 slurm.sh
+poetry.lock
