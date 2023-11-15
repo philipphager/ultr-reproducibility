@@ -8,11 +8,11 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.9,<3.9.7 || >3.9.7,<3.13" # Streamlit requires !=3.9.7
 jaxlib = {version = "0.4.20+cuda11.cudnn86", source = "jax_cuda"}
-jax = {version = "0.4.20", extras=["cuda11_local"]}
+jax = {version = "0.4.20", extras=["cuda11_pip"]}
 flax = "^0.7.5"
-torch = ">=2.0.0, !=2.0.1, !=2.1.0" # Weird poetry bug
+torch = {version = "^2.1.1", source = "torch_cpu"} # Weird poetry/pytorch bug
 datasets = "^2.14.6"
-pyarrow = "^14.0.0"
+pyarrow = "14.0.0"
 scikit-learn = "^1.3.2"
 mmh3 = "^4.0.1"
 rax = "^0.3.0"
@@ -23,11 +23,18 @@ jupyterlab = "^4.0.8"
 hydra-submitit-launcher = "^1.2.0"
 altair = "^5.1.0"
 streamlit = "^1.28.1"
+wandb = "^0.16.0"
+pyarrow-hotfix = "^0.5"
 
 
 [[tool.poetry.source]]
 name = "jax_cuda"
 url = "https://storage.googleapis.com/jax-releases/jax_cuda_releases.html"
+priority = "explicit"
+
+[[tool.poetry.source]]
+name = "torch_cpu"
+url = "https://download.pytorch.org/whl/"
 priority = "explicit"
 
 

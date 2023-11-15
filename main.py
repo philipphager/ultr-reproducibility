@@ -1,5 +1,6 @@
 import logging
 from functools import partial
+import pyarrow_hotfix; pyarrow_hotfix.uninstall()
 
 import hydra
 import jax
@@ -35,7 +36,7 @@ BAIDU_DATASET = "philipphager/baidu-ultr"
 
 def load_train_data(cache_dir: str, num_workers: int):
     train_dataset = load_dataset(
-        BAIDU_DATASET, name="clicks", split="train", cache_dir=cache_dir
+        BAIDU_DATASET, name="clicks-1p", split="train", cache_dir=cache_dir
     )
     train_dataset.set_format("numpy")
 
