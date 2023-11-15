@@ -12,6 +12,7 @@ from jax import jit
 from pandas import DataFrame
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import wandb
 
 from src.log import print_metric_table
 from src.util import EarlyStopping, collect_metrics, aggregate_metrics, save_state
@@ -39,6 +40,7 @@ class Trainer:
         self.metric_fns = metric_fns
         self.epochs = epochs
         self.early_stopping = early_stopping
+        self.global_step = 0
 
     def train(
         self,
@@ -55,6 +57,8 @@ class Trainer:
             )
             val_df = self._eval_epoch(model, state, val_loader, f"Epoch: {epoch} - Val")
             val_metrics = aggregate_metrics(val_df)
+
+            wandb.log({"val" :val_metrics}, epoch)
 
             has_improved, should_stop = self.early_stopping.update(val_metrics)
             logger.info(f"Epoch {epoch}: {val_metrics}, has_improved: {has_improved}")
@@ -78,6 +82,7 @@ class Trainer:
     ) -> DataFrame:
         test_df = self._eval_epoch(model, state, test_loader, description)
         test_metrics = aggregate_metrics(test_df)
+        wandb.log({"test" : test_metrics})
         print_metric_table(test_metrics, description)
 
         return test_df
@@ -100,6 +105,9 @@ class Trainer:
     def _train_epoch(self, model, state, loader, description):
         for batch in tqdm(loader, desc=description):
             state, loss = self._train_step(model, state, batch)
+            if self.global_step % (100 * loader.batch_size) == 0:
+                wandb.log({"train" : {"loss": loss}}, self.global_step, commit = False)
+            self.global_step += loader.batch_size
 
         return state
 

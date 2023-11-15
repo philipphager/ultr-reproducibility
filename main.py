@@ -14,6 +14,8 @@ from omegaconf import DictConfig
 from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader
+import wandb
+import time
 
 from src.data import collate_fn, hash_labels, discretize, stratified_split
 from src.trainer import Trainer
@@ -63,6 +65,14 @@ def load_val_data(cache_dir: str):
 @hydra.main(version_base="1.2", config_path="config", config_name="config")
 def main(config: DictConfig):
     torch.manual_seed(config.random_state)
+
+    run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
+    wandb.init(
+        project=config.wandb_project_name,
+        entity=config.wandb_entity,
+        config=vars(config)["_content"],
+        name=run_name,
+    )
 
     train_dataset = load_train_data(config.cache_dir, config.num_workers)
     val_dataset = load_val_data(config.cache_dir)
