@@ -11,8 +11,6 @@ from app.utils.file import get_model_directories, parse_model_name
 
 sidebar.draw()
 
-st.markdown("# Test Metrics")
-
 
 def get_results(paths: List[Path], eval_type: str) -> pd.DataFrame:
     dfs = []
@@ -68,6 +66,8 @@ def plot_metrics(df):
 model_directory = st.session_state["model_directory"]
 model_directories = get_model_directories(model_directory)
 eval_type = st.sidebar.selectbox("Evaluation", ["val", "test"])
+
+st.title(eval_type.capitalize() + " Metrics")
 
 if len(model_directories) == 0:
     st.warning("No evaluation results to plot.")
