@@ -3,10 +3,9 @@ from typing import List
 
 
 def is_model_directory(path: Path) -> bool:
-    test_path = path / "test.parquet"
     state_path = path / "best_state"
     config_path = path / ".hydra/config.yaml"
-    return test_path.exists() and config_path.exists() and state_path.exists()
+    return config_path.exists() and state_path.exists()
 
 
 def get_model_directories(path: Path) -> List[Path]:

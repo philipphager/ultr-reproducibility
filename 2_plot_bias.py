@@ -4,48 +4,22 @@ import altair as alt
 import numpy as np
 import pandas as pd
 import streamlit as st
-from datasets import load_dataset
 from flax import linen as nn
 from hydra import initialize, compose
 from hydra.utils import instantiate
-from torch.utils.data import DataLoader
 
 from app.components import sidebar
 from app.utils.file import get_model_directories, parse_model_name
 from app.utils.model import load_state
-from src.data import LabelEncoder, Discretize, collate_fn
-
-
-def get_train_data():
-    train_dataset = load_dataset(
-        "philipphager/baidu-ultr-606k", name="clicks", split="train[:1%]"
-    )
-    train_dataset.set_format("numpy")
-
-    encode_media_type = LabelEncoder()
-    encode_serp_height = Discretize(0, 1024, 16)
-    encode_displayed_time = Discretize(0, 128, 16)
-    encode_slipoff = Discretize(0, 10, 10)
-
-    def encode_bias(batch):
-        batch["media_type"] = encode_media_type(batch["media_type"])
-        batch["displayed_time"] = encode_displayed_time(batch["displayed_time"])
-        batch["serp_height"] = encode_serp_height(batch["serp_height"])
-        batch["slipoff_count_after_click"] = encode_slipoff(
-            batch["slipoff_count_after_click"]
-        )
-        return batch
-
-    return train_dataset.map(encode_bias)
 
 
 def get_synthetic_batch():
-    k = st.sidebar.slider("Positions", 1, 25, 10)
+    k = st.sidebar.slider("Positions", 2, 25, 10)
     positions = (np.arange(k) + 1).reshape(1, -1)
-    media_type = np.full((1, k), st.sidebar.slider("Media type", 1, 10, 1))
-    displayed_time = np.full((1, k), st.sidebar.slider("Display time", 1, 10, 1))
-    serp_height = np.full((1, k), st.sidebar.slider("SERP height", 1, 10, 1))
-    slip_off = np.full((1, k), st.sidebar.slider("Slip off", 1, 10, 1))
+    media_type = np.full((1, k), st.sidebar.slider("Media type", 1, 100, 1))
+    displayed_time = np.full((1, k), st.sidebar.slider("Display time", 1, 17, 1))
+    serp_height = np.full((1, k), st.sidebar.slider("SERP height", 1, 17, 1))
+    slip_off = np.full((1, k), st.sidebar.slider("Slip off", 1, 11, 1))
 
     return {
         "position": positions.astype(int),
@@ -110,16 +84,7 @@ if len(model_directories) == 0:
     st.warning("No evaluation results to plot.")
     st.stop()
 
-data_type = st.sidebar.selectbox("Select data", ["Synthetic", "Random Train Batch"])
-
-if data_type == "Synthetic":
-    batch = get_synthetic_batch()
-elif data_type == "Random Train Batch":
-    st.sidebar.markdown("Press `r` to fetch next batch")
-    train_dataset = get_train_data()
-    loader = DataLoader(train_dataset, collate_fn=collate_fn, shuffle=True)
-    batch = next(iter(loader))
-
+batch = get_synthetic_batch()
 normalize = st.sidebar.toggle("Normalize bias by first position", False)
 
 st.write(batch)
