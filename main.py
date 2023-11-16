@@ -10,7 +10,7 @@ import rax
 import torch
 from datasets import load_dataset
 from hydra.utils import instantiate
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader
@@ -65,6 +65,7 @@ def load_val_data(cache_dir: str):
 @hydra.main(version_base="1.2", config_path="config", config_name="config")
 def main(config: DictConfig):
     torch.manual_seed(config.random_state)
+    print(OmegaConf.to_yaml(config))
 
     run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
     wandb.init(
@@ -108,8 +109,8 @@ def main(config: DictConfig):
     criterion = instantiate(config.loss)
 
     trainer = Trainer(
-        random_state=0,
-        optimizer=optax.adam(learning_rate=0.0001),
+        random_state=config.random_state,
+        optimizer=optax.adam(learning_rate=config.trainer.learning_rate),
         criterion=criterion,
         metric_fns={
             "ndcg@10": partial(rax.ndcg_metric, topn=10),
@@ -119,8 +120,8 @@ def main(config: DictConfig):
             "dcg@05": partial(rax.dcg_metric, topn=5),
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
-        epochs=25,
-        early_stopping=EarlyStopping(metric="dcg@10", patience=2),
+        epochs=config.trainer.epochs,
+        early_stopping=EarlyStopping(metric="dcg@10", patience=config.trainer.patience),
     )
     best_state = trainer.train(model, trainer_loader, val_loader)
 

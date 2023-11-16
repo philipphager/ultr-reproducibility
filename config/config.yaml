@@ -6,6 +6,11 @@ defaults:
 
 random_state: 381
 
+trainer:
+  learning_rate: 0.0001
+  epochs: 50
+  patience: 3
+
 hydra:
   job:
     chdir: True
