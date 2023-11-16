@@ -134,6 +134,8 @@ def main(config: DictConfig):
     test_df = trainer.test(model, best_state, test_loader, "Testing")
     test_df.to_parquet("test.parquet")
 
+    wandb.finish()
+
     # Return best val metric for hyperparameter tuning using Optuna
     best_val_metrics = aggregate_metrics(val_df)
     return best_val_metrics[config.trainer.val_metric]
