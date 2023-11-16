@@ -1,15 +1,16 @@
 from pathlib import Path
-from typing import List
 
 
-def is_model_directory(path: Path) -> bool:
+def has_checkpoint(path: Path) -> bool:
     state_path = path / "best_state"
     config_path = path / ".hydra/config.yaml"
     return config_path.exists() and state_path.exists()
 
 
-def get_model_directories(path: Path) -> List[Path]:
-    return list(filter(is_model_directory, map(Path, path.glob("*/"))))
+def has_metrics(path: Path) -> bool:
+    val_path = path / "val.parquet"
+    test_path = path / "test.parquet"
+    return val_path.exists() and test_path.exists()
 
 
 def parse_model_name(path: Path):

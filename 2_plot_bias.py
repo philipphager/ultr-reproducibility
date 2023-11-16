@@ -10,7 +10,7 @@ from hydra.core.global_hydra import GlobalHydra
 from hydra.utils import instantiate
 
 from app.components import sidebar
-from app.utils.file import get_model_directories, parse_model_name
+from app.utils.file import parse_model_name, has_checkpoint
 from app.utils.model import load_state
 
 
@@ -78,13 +78,15 @@ def plot_position_bias(df):
 
 sidebar.draw()
 st.markdown("# Inspect Bias")
-st.info("Sometimes Hydra fails to clear its context, you might need to refresh this page.")
+st.info(
+    "Sometimes Hydra fails to clear its context, you might need to refresh this page."
+)
 
-model_directory = st.session_state["model_directory"]
-model_directories = get_model_directories(model_directory)
-model_directories = [f for f in model_directories if "naive" not in f.name]
+model_directory = Path(st.session_state["model_directory"])
+directories = list(filter(has_checkpoint, map(Path, model_directory.glob("*/"))))
+directories = [f for f in directories if "naive" not in f.name]
 
-if len(model_directories) == 0:
+if len(directories) == 0:
     st.warning("No evaluation results to plot.")
     st.stop()
 
@@ -96,7 +98,7 @@ st.divider()
 
 dfs = []
 
-for path in model_directories:
+for path in directories:
     model = get_model(path)
     state = load_state(path)
     options = parse_model_name(path)

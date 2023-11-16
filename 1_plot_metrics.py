@@ -7,7 +7,7 @@ import streamlit as st
 
 from app.components import sidebar
 from app.utils.const import METRICS, MODELS, LOSSES
-from app.utils.file import get_model_directories, parse_model_name
+from app.utils.file import parse_model_name, has_metrics
 
 sidebar.draw()
 
@@ -64,16 +64,16 @@ def plot_metrics(df):
 
 
 model_directory = st.session_state["model_directory"]
-model_directories = get_model_directories(model_directory)
+directories = list(filter(has_metrics, map(Path, model_directory.glob("*/"))))
 eval_type = st.sidebar.selectbox("Evaluation", ["val", "test"])
 
 st.title(eval_type.capitalize() + " Metrics")
 
-if len(model_directories) == 0:
+if len(directories) == 0:
     st.warning("No evaluation results to plot.")
     st.stop()
 
-test_df = get_results(model_directories, eval_type)
+test_df = get_results(directories, eval_type)
 
 with st.expander("Inspect raw data"):
     top_n = st.number_input("Top n", 1_000, step=100)
