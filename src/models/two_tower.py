@@ -1,5 +1,5 @@
 import enum
-from typing import Union, Tuple, List, Dict
+from typing import Union, Tuple, Dict
 
 import jax.numpy as jnp
 from flax import linen as nn
@@ -9,8 +9,9 @@ from src.models.base import Tower
 
 
 class BiasTower(nn.Module):
-    layers: List[int]
-    dropouts: List[float]
+    dims: int
+    layers: int
+    dropout: float
     embeddings: Dict[str, nn.Module]
 
     @nn.compact
@@ -22,7 +23,7 @@ class BiasTower(nn.Module):
             axis=-1,
         )
 
-        bias_model = Tower(layers=self.layers, dropouts=self.dropouts)
+        bias_model = Tower(dims=self.dims, layers=self.layers, dropout=self.dropout)
         return bias_model(x, training)
 
 
@@ -52,27 +53,31 @@ class TwoTowerModel(nn.Module):
     P(C = 1 | d, q, b) = P(E = 1 | b) x P(R = 1 | d, q)
     """
 
-    bias_layers: List[int]
-    bias_dropouts: List[float]
-    relevance_layers: List[int]
-    relevance_dropouts: List[float]
+    bias_dims: int
+    bias_layers: int
+    bias_dropout: float
+    relevance_dims: int
+    relevance_layers: int
+    relevance_dropout: float
     tower_combination: TowerCombination
 
     def setup(self) -> None:
         self.relevance_model = Tower(
+            dims=self.relevance_dims,
             layers=self.relevance_layers,
-            dropouts=self.relevance_dropouts,
+            dropout=self.relevance_dropout,
         )
         self.bias_model = BiasTower(
+            dims=self.bias_dims,
             layers=self.bias_layers,
-            dropouts=self.bias_dropouts,
+            dropout=self.bias_dropout,
             embeddings={
                 "position": nn.Embed(num_embeddings=50, features=8),
                 "media_type": nn.Embed(num_embeddings=10_001, features=8),
                 "serp_height": nn.Embed(num_embeddings=18, features=8),
                 "displayed_time": nn.Embed(num_embeddings=18, features=8),
                 "slipoff_count_after_click": nn.Embed(num_embeddings=18, features=8),
-            }
+            },
         )
 
     def __call__(
