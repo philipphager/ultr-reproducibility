@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 from flax import linen as nn
 from hydra import initialize, compose
+from hydra.core.global_hydra import GlobalHydra
 from hydra.utils import instantiate
 
 from app.components import sidebar
@@ -31,6 +32,8 @@ def get_synthetic_batch():
 
 
 def get_model(path: Path):
+    GlobalHydra.instance().clear()
+
     with initialize(version_base=None, config_path=str(path / ".hydra")):
         config = compose(config_name="config.yaml")
         return instantiate(config.model)
