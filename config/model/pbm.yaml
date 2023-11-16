@@ -2,5 +2,6 @@ defaults:
   - base
 
 _target_: src.models.PositionBasedModel
-n_positions: 25
+bias_layers: [ 512, 256, 128 ]
+bias_dropouts: [ 0, 0.1, 0.1 ]
 tower_combination: ADDITIVE
