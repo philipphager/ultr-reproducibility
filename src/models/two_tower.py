@@ -1,5 +1,5 @@
 import enum
-from typing import Union, Tuple, List
+from typing import Union, Tuple, List, Dict
 
 import jax.numpy as jnp
 from flax import linen as nn
@@ -11,25 +11,14 @@ from src.models.base import Tower
 class BiasTower(nn.Module):
     layers: List[int]
     dropouts: List[float]
+    embeddings: Dict[str, nn.Module]
 
     @nn.compact
     def __call__(
         self, batch, training: bool = False
     ) -> Union[Array, Tuple[Array, Array]]:
-        position = nn.Embed(num_embeddings=50, features=8)
-        media_type = nn.Embed(num_embeddings=10_001, features=8)
-        serp_height = nn.Embed(num_embeddings=18, features=8)
-        displayed_time = nn.Embed(num_embeddings=18, features=8)
-        slipoff_count = nn.Embed(num_embeddings=18, features=8)
-
         x = jnp.concatenate(
-            [
-                position(batch["position"]),
-                media_type(batch["media_type"]),
-                displayed_time(batch["displayed_time"]),
-                serp_height(batch["serp_height"]),
-                slipoff_count(batch["slipoff_count_after_click"]),
-            ],
+            [embedding(batch[column]) for column, embedding in self.embeddings.items()],
             axis=-1,
         )
 
@@ -77,6 +66,13 @@ class TwoTowerModel(nn.Module):
         self.bias_model = BiasTower(
             layers=self.bias_layers,
             dropouts=self.bias_dropouts,
+            embeddings={
+                "position": nn.Embed(num_embeddings=50, features=8),
+                "media_type": nn.Embed(num_embeddings=10_001, features=8),
+                "serp_height": nn.Embed(num_embeddings=18, features=8),
+                "displayed_time": nn.Embed(num_embeddings=18, features=8),
+                "slipoff_count_after_click": nn.Embed(num_embeddings=18, features=8),
+            }
         )
 
     def __call__(
