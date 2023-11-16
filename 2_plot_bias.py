@@ -74,8 +74,9 @@ def plot_position_bias(df):
 
 
 sidebar.draw()
-
 st.markdown("# Inspect Bias")
+st.info("Sometimes Hydra fails to clear its context, you might need to refresh this page.")
+
 model_directory = st.session_state["model_directory"]
 model_directories = get_model_directories(model_directory)
 model_directories = [f for f in model_directories if "naive" not in f.name]
