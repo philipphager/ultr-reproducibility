@@ -19,7 +19,7 @@ import time
 
 from src.data import collate_fn, hash_labels, discretize, stratified_split
 from src.trainer import Trainer
-from src.util import EarlyStopping
+from src.util import EarlyStopping, aggregate_metrics
 
 logging.basicConfig(
     level="INFO",
@@ -121,7 +121,10 @@ def main(config: DictConfig):
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
         epochs=config.trainer.epochs,
-        early_stopping=EarlyStopping(metric="dcg@10", patience=config.trainer.patience),
+        early_stopping=EarlyStopping(
+            metric=config.trainer.val_metric,
+            patience=config.trainer.patience,
+        ),
     )
     best_state = trainer.train(model, trainer_loader, val_loader)
 
@@ -130,6 +133,9 @@ def main(config: DictConfig):
 
     test_df = trainer.test(model, best_state, test_loader, "Testing")
     test_df.to_parquet("test.parquet")
+
+    best_val_metrics = aggregate_metrics(val_df)
+    return best_val_metrics[config.trainer.val_metric]
 
 
 if __name__ == "__main__":
