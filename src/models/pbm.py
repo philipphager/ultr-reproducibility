@@ -4,7 +4,7 @@ from flax import linen as nn
 from jax import Array
 
 from src.models.base import Tower
-from src.models.two_tower import TowerCombination, combine_towers
+from src.models.two_tower import TowerCombination, combine_towers, BiasTower
 
 
 class PositionBasedModel(nn.Module):
@@ -13,19 +13,23 @@ class PositionBasedModel(nn.Module):
     P(C = 1 | d, q, k) = P(E = 1 | k) x P(R = 1 | d, q)
     """
 
+    bias_layers: List[int]
+    bias_dropouts: List[float]
     relevance_layers: List[int]
     relevance_dropouts: List[float]
-    tower_combination: Union[TowerCombination, str]
-    n_positions: int
+    tower_combination: TowerCombination
 
     def setup(self) -> None:
         self.relevance_model = Tower(
             layers=self.relevance_layers,
             dropouts=self.relevance_dropouts,
         )
-        self.examination_model = nn.Embed(
-            num_embeddings=self.n_positions,
-            features=1,
+        self.bias_model = BiasTower(
+            layers=self.bias_layers,
+            dropouts=self.bias_dropouts,
+            embeddings={
+                "position": nn.Embed(num_embeddings=50, features=8),
+            },
         )
 
     def __call__(
@@ -40,4 +44,4 @@ class PositionBasedModel(nn.Module):
         return self.relevance_model(x, training).squeeze()
 
     def predict_examination(self, batch, training: bool = False) -> Array:
-        return self.examination_model(batch["position"]).squeeze()
+        return self.bias_model(batch).squeeze()

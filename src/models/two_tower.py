@@ -11,24 +11,17 @@ from src.models.base import Tower
 class BiasTower(nn.Module):
     layers: List[int]
     dropouts: List[float]
-    column_embeddings: Dict[str, int]
-    embedding_dims: int
+    embeddings: Dict[str, nn.Module]
 
     @nn.compact
     def __call__(
         self, batch, training: bool = False
     ) -> Union[Array, Tuple[Array, Array]]:
-        embeddings = []
+        x = jnp.concatenate(
+            [embedding(batch[column]) for column, embedding in self.embeddings.items()],
+            axis=-1,
+        )
 
-        for column, num_embeddings in self.column_embeddings.items():
-            layer = nn.Embed(
-                num_embeddings=num_embeddings,
-                features=self.embedding_dims,
-            )
-            embedding = layer(batch[column])
-            embeddings.append(embedding)
-
-        x = jnp.concatenate(embeddings, axis=-1)
         bias_model = Tower(layers=self.layers, dropouts=self.dropouts)
         return bias_model(x, training)
 
@@ -61,7 +54,6 @@ class TwoTowerModel(nn.Module):
 
     bias_layers: List[int]
     bias_dropouts: List[float]
-    bias_embeddings: Dict[str, int]
     relevance_layers: List[int]
     relevance_dropouts: List[float]
     tower_combination: TowerCombination
@@ -74,8 +66,13 @@ class TwoTowerModel(nn.Module):
         self.bias_model = BiasTower(
             layers=self.bias_layers,
             dropouts=self.bias_dropouts,
-            column_embeddings=self.bias_embeddings,
-            embedding_dims=8,
+            embeddings={
+                "position": nn.Embed(num_embeddings=50, features=8),
+                "media_type": nn.Embed(num_embeddings=10_001, features=8),
+                "serp_height": nn.Embed(num_embeddings=18, features=8),
+                "displayed_time": nn.Embed(num_embeddings=18, features=8),
+                "slipoff_count_after_click": nn.Embed(num_embeddings=18, features=8),
+            }
         )
 
     def __call__(
