@@ -1,11 +1,11 @@
 import logging
 from functools import partial
-import pyarrow_hotfix; pyarrow_hotfix.uninstall()
 
 import hydra
 import jax
 import optax
 import pyarrow
+pyarrow.PyExtensionType.set_auto_load(True)
 import rax
 import torch
 from datasets import load_dataset
@@ -66,6 +66,7 @@ def load_val_data(cache_dir: str):
 def main(config: DictConfig):
     torch.manual_seed(config.random_state)
 
+
     run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
     wandb.init(
         project=config.wandb_project_name,
@@ -73,6 +74,8 @@ def main(config: DictConfig):
         config=vars(config)["_content"],
         name=run_name,
     )
+    wandb.define_metric("test")
+    wandb.define_metric("AggMetrics/test.*", step_metric="test")
 
     train_dataset = load_train_data(config.cache_dir, config.num_workers)
     val_dataset = load_val_data(config.cache_dir)
@@ -119,7 +122,7 @@ def main(config: DictConfig):
             "dcg@05": partial(rax.dcg_metric, topn=5),
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
-        epochs=25,
+        epochs=2,
         early_stopping=EarlyStopping(metric="dcg@10", patience=2),
     )
     best_state = trainer.train(model, trainer_loader, val_loader)
