@@ -3,3 +3,5 @@ run_dir: multirun
 num_workers: 8
 wandb_project_name: baidu-reproducibility
 wandb_entity: cm-offline-metrics
+logging: True
+progress_bar: True
