@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-#SBATCH --job-name=baidu-ultr
+#SBATCH --job-name=tune-pbm
 #SBATCH --time=12:00:00
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task 8
