@@ -1,6 +1,4 @@
 import logging
-import os
-import sys
 from functools import partial
 import pyarrow_hotfix; pyarrow_hotfix.uninstall()
 
@@ -22,8 +20,6 @@ import time
 from src.data import collate_fn, hash_labels, discretize, stratified_split
 from src.trainer import Trainer, Stage
 from src.util import EarlyStopping, aggregate_metrics
-
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
 
 logging.basicConfig(
     level="INFO",
@@ -68,11 +64,8 @@ def load_val_data(cache_dir: str):
 
 @hydra.main(version_base="1.2", config_path="config", config_name="config")
 def main(config: DictConfig):
-    jax.distributed.initialize()
-    
     torch.manual_seed(config.random_state)
     print(OmegaConf.to_yaml(config))
-    print(sys.executable)
 
     run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
     wandb.init(
