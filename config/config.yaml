@@ -2,6 +2,7 @@ defaults:
   - _self_
   - model: two-towers
   - loss: listwise
+  - hyperparameter: "${model}_${loss}"
   - user_const
 
 random_state: 381
