@@ -47,21 +47,21 @@ class Trainer:
         model: nn.Module,
         train_loader: DataLoader,
         val_loader: DataLoader,
+        log_metrics: bool = True,
     ) -> TrainState:
         state = self._init_train_state(model, train_loader)
         best_model_state = None
 
         for epoch in range(self.epochs):
-            state, epoch_loss, epoch_loss_per_rank = self._train_epoch(
+            state, epoch_loss = self._train_epoch(
                 model, state, train_loader, f"Epoch: {epoch} - Training"
             )
-            epoch_loss_per_rank = {f"loss@{i}": val for i,val in zip([1,2,5,10], jax.device_get(epoch_loss_per_rank))}
             val_df = self._eval_epoch(model, state, val_loader, f"Epoch: {epoch} - Val")
             val_metrics = aggregate_metrics(val_df)
 
-            wandb.log({"AggMetrics/val" : val_metrics, 
-                       "AggMetrics/train.loss" : epoch_loss, 
-                       "RankMetrics/train": epoch_loss_per_rank}, step = epoch)
+            if log_metrics:
+                wandb.log({"Metrics/val" : val_metrics, 
+                        "Metrics/train.loss" : epoch_loss}, step = epoch)
 
             has_improved, should_stop = self.early_stopping.update(val_metrics)
             logger.info(f"Epoch {epoch}: {val_metrics}, has_improved: {has_improved}")
@@ -82,11 +82,12 @@ class Trainer:
         state: TrainState,
         test_loader: DataLoader,
         description: str = "Testing",
+        log_metrics: bool = True,
     ) -> DataFrame:
         test_df = self._eval_epoch(model, state, test_loader, description)
         test_metrics = aggregate_metrics(test_df)
-        if description == "Testing":
-            wandb.log({"AggMetrics/test" : test_metrics})
+        if log_metrics and description == "Testing":
+            wandb.log({"Metrics/test" : test_metrics})
         print_metric_table(test_metrics, description)
 
         return test_df
@@ -110,13 +111,11 @@ class Trainer:
         epoch_loss = 0
         epoch_loss_per_rank = jax.numpy.zeros(4)
         for batch in tqdm(loader, desc=description):
-            state, loss, loss_per_rank = self._train_step(model, state, batch)
+            state, loss = self._train_step(model, state, batch)
             epoch_loss += loss
-            epoch_loss_per_rank += loss_per_rank[jax.numpy.array([0, 1, 4, 9])]
             self.global_step += loader.batch_size
         epoch_loss /= len(loader)
-        epoch_loss_per_rank /= len(loader)
-        return state, epoch_loss, epoch_loss_per_rank
+        return state, epoch_loss
 
     def _eval_epoch(self, model, state, loader, description):
         metrics = []
@@ -137,13 +136,13 @@ class Trainer:
                 training=True,
                 rngs={"dropout": dropout_key},
             )
-            loss_per_rank = self.criterion(y_predict, batch["click"], where=batch["mask"], reduce_fn = None)
-            return loss_per_rank.mean(), loss_per_rank.mean(axis = 0)
+            loss = self.criterion(y_predict, batch["click"], where=batch["mask"])
+            return loss
 
-        (loss, loss_per_rank), grads = jax.value_and_grad(loss_fn, has_aux = True)(state.params)
+        loss, grads = jax.value_and_grad(loss_fn)(state.params)
         state = state.apply_gradients(grads=grads)
 
-        return state, loss, loss_per_rank
+        return state, loss
 
     @partial(jit, static_argnums=(0, 1))
     def _eval_step(self, model, state, batch):

@@ -66,16 +66,16 @@ def load_val_data(cache_dir: str):
 def main(config: DictConfig):
     torch.manual_seed(config.random_state)
 
-    run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
-    wandb.init(
-        project=config.wandb_project_name,
-        entity=config.wandb_entity,
-        name=run_name,
-        config = OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
-        settings=wandb.Settings(start_method="thread")
-    )
-    wandb.define_metric("test")
-    wandb.define_metric("AggMetrics/test.*", step_metric="test")
+    if config.logging:
+        run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
+        wandb.init(
+            project=config.wandb_project_name,
+            entity=config.wandb_entity,
+            name=run_name,
+            config = OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
+        )
+        wandb.define_metric("test")
+        wandb.define_metric("Metrics/test.*", step_metric="test")
 
     train_dataset = load_train_data(config.cache_dir, config.num_workers)
     val_dataset = load_val_data(config.cache_dir)
@@ -125,15 +125,16 @@ def main(config: DictConfig):
         epochs=25,
         early_stopping=EarlyStopping(metric="dcg@10", patience=2),
     )
-    best_state = trainer.train(model, trainer_loader, val_loader)
+    best_state = trainer.train(model, trainer_loader, val_loader, log_metrics = config.logging)
 
-    val_df = trainer.test(model, best_state, val_loader, "Validation")
+    val_df = trainer.test(model, best_state, val_loader, "Validation", log_metrics = config.logging)
     val_df.to_parquet("val.parquet")
 
     test_df = trainer.test(model, best_state, test_loader, "Testing")
     test_df.to_parquet("test.parquet")
 
-    wandb.finish()
+    if config.logging:
+        wandb.finish()
 
 
 if __name__ == "__main__":
