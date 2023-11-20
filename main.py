@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 from functools import partial
 import pyarrow_hotfix; pyarrow_hotfix.uninstall()
@@ -21,6 +22,8 @@ import time
 from src.data import collate_fn, hash_labels, discretize, stratified_split
 from src.trainer import Trainer, Stage
 from src.util import EarlyStopping, aggregate_metrics
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
 
 logging.basicConfig(
     level="INFO",
