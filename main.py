@@ -10,7 +10,7 @@ import rax
 import torch
 from datasets import load_dataset
 from hydra.utils import instantiate
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader
@@ -66,13 +66,13 @@ def load_val_data(cache_dir: str):
 def main(config: DictConfig):
     torch.manual_seed(config.random_state)
 
-
     run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
     wandb.init(
         project=config.wandb_project_name,
         entity=config.wandb_entity,
-        config=vars(config)["_content"],
         name=run_name,
+        config = OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
+        settings=wandb.Settings(start_method="thread")
     )
     wandb.define_metric("test")
     wandb.define_metric("AggMetrics/test.*", step_metric="test")
