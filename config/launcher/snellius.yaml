@@ -11,3 +11,4 @@ hydra:
     cpus_per_task: 16
     partition: gpu
     gres: gpu:1
+    setup: conda activate baidu-reproducibility
