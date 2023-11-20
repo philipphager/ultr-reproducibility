@@ -1,4 +1,5 @@
 import logging
+import sys
 from functools import partial
 import pyarrow_hotfix; pyarrow_hotfix.uninstall()
 
@@ -8,7 +9,6 @@ import optax
 import pyarrow
 import rax
 import torch
-import submitit
 from datasets import load_dataset
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
@@ -67,7 +67,7 @@ def load_val_data(cache_dir: str):
 def main(config: DictConfig):
     torch.manual_seed(config.random_state)
     print(OmegaConf.to_yaml(config))
-    print(submitit.helpers.CommandFunction(["which", "python"]))
+    print(sys.executable)
 
     run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
     wandb.init(
