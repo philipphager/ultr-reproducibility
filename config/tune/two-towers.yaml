@@ -1,0 +1,17 @@
+# @package _global_
+
+defaults:
+  - base
+  - override /model: two-towers
+
+hydra:
+  sweeper:
+    study_name: two-towers
+    params:
+      trainer.learning_rate: tag(log, interval(0.00001, 0.1))
+      model.relevance_dims: range(16, 512, step=16)
+      model.relevance_layers: range(0, 5)
+      model.relevance_dropout: interval(0.0, 1.0)
+      model.bias_dims: range(16, 512, step=16)
+      model.bias_layers: range(0, 5)
+      model.bias_dropout: interval(0.0, 1.0)
