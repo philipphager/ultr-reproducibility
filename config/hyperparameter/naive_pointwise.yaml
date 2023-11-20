@@ -6,4 +6,4 @@ trainer:
 model:
   relevance_dims: 336
   relevance_layers: 5
-  relevance_dropout: 0.003
+  relevance_dropout: 0.7
