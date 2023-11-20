@@ -85,7 +85,8 @@ class Trainer:
     ) -> DataFrame:
         test_df = self._eval_epoch(model, state, test_loader, description)
         test_metrics = aggregate_metrics(test_df)
-        wandb.log({"AggMetrics/test" : test_metrics})
+        if description == "Testing":
+            wandb.log({"AggMetrics/test" : test_metrics})
         print_metric_table(test_metrics, description)
 
         return test_df

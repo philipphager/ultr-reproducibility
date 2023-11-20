@@ -133,6 +133,8 @@ def main(config: DictConfig):
     test_df = trainer.test(model, best_state, test_loader, "Testing")
     test_df.to_parquet("test.parquet")
 
+    wandb.finish()
+
 
 if __name__ == "__main__":
     main()
