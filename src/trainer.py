@@ -1,3 +1,4 @@
+import enum
 import logging
 import os
 from functools import partial
@@ -6,13 +7,13 @@ from typing import Dict, Callable
 
 import flax.linen as nn
 import jax
+import wandb
 from flax.training import train_state
 from flax.training.train_state import TrainState
 from jax import jit
 from pandas import DataFrame
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-import wandb
 
 from src.log import print_metric_table
 from src.util import EarlyStopping, collect_metrics, aggregate_metrics, save_state
@@ -22,6 +23,12 @@ logger = logging.getLogger("rich")
 
 class TrainState(train_state.TrainState):
     dropout_key: jax.Array
+
+
+class Stage(str, enum.Enum):
+    TRAIN = "train"
+    VAL = "val"
+    TEST = "test"
 
 
 class Trainer:
@@ -58,7 +65,7 @@ class Trainer:
             val_df = self._eval_epoch(model, state, val_loader, f"Epoch: {epoch} - Val")
             val_metrics = aggregate_metrics(val_df)
 
-            wandb.log({"val" :val_metrics}, epoch)
+            wandb.log({Stage.VAL: val_metrics}, epoch)
 
             has_improved, should_stop = self.early_stopping.update(val_metrics)
             logger.info(f"Epoch {epoch}: {val_metrics}, has_improved: {has_improved}")
@@ -73,19 +80,19 @@ class Trainer:
 
         return best_model_state
 
-    def test(
+    def eval(
         self,
         model: nn.Module,
         state: TrainState,
-        test_loader: DataLoader,
-        description: str = "Testing",
+        loader: DataLoader,
+        stage: Stage = Stage.TEST,
     ) -> DataFrame:
-        test_df = self._eval_epoch(model, state, test_loader, description)
-        test_metrics = aggregate_metrics(test_df)
-        wandb.log({"test" : test_metrics})
-        print_metric_table(test_metrics, description)
+        eval_df = self._eval_epoch(model, state, loader, stage)
+        metrics = aggregate_metrics(eval_df)
+        wandb.log({stage: metrics})
+        print_metric_table(metrics, stage)
 
-        return test_df
+        return eval_df
 
     def _init_train_state(self, model, train_loader):
         key = jax.random.PRNGKey(self.random_state)
@@ -106,7 +113,7 @@ class Trainer:
         for batch in tqdm(loader, desc=description):
             state, loss = self._train_step(model, state, batch)
             if self.global_step % (100 * loader.batch_size) == 0:
-                wandb.log({"train" : {"loss": loss}}, self.global_step, commit = False)
+                wandb.log({Stage.TRAIN: {"loss": loss}}, self.global_step)
             self.global_step += loader.batch_size
 
         return state

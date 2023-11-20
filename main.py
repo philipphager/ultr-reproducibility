@@ -18,7 +18,7 @@ import wandb
 import time
 
 from src.data import collate_fn, hash_labels, discretize, stratified_split
-from src.trainer import Trainer
+from src.trainer import Trainer, Stage
 from src.util import EarlyStopping, aggregate_metrics
 
 logging.basicConfig(
@@ -128,10 +128,10 @@ def main(config: DictConfig):
     )
     best_state = trainer.train(model, trainer_loader, val_loader)
 
-    val_df = trainer.test(model, best_state, val_loader, "Validation")
+    val_df = trainer.eval(model, best_state, val_loader, Stage.VAL)
     val_df.to_parquet("val.parquet")
 
-    test_df = trainer.test(model, best_state, test_loader, "Testing")
+    test_df = trainer.eval(model, best_state, test_loader, Stage.TEST)
     test_df.to_parquet("test.parquet")
 
     wandb.finish()
