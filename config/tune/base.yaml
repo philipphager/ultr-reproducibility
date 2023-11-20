@@ -11,3 +11,18 @@ hydra:
     n_trials: 50
     n_jobs: 1
     max_failure_rate: 0.0
+  sweep:
+    dir: multirun/tune
+    subdir: "${hydra.job.override_dirname}-${hydra.job.num}"
+  job:
+    config:
+      override_dirname:
+        exclude_keys:
+          - tune
+          - trainer.learning_rate
+          - model.relevance_dims
+          - model.relevance_layers
+          - model.relevance_dropout
+          - model.bias_dims
+          - model.bias_layers
+          - model.bias_dropout
