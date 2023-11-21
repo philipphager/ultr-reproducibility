@@ -36,7 +36,7 @@ logging.basicConfig(
 BAIDU_DATASET = "philipphager/baidu-ultr"
 
 
-def load_train_data(cache_dir: str, num_workers: int):
+def load_train_data(cache_dir: str):
     train_dataset = load_dataset(
         BAIDU_DATASET, name="clicks-1p", split="train", cache_dir=cache_dir
     )
@@ -51,7 +51,7 @@ def load_train_data(cache_dir: str, num_workers: int):
         )
         return batch
 
-    return train_dataset.map(encode_bias, num_proc=num_workers)
+    return train_dataset.map(encode_bias, num_proc=1)
 
 
 def load_val_data(cache_dir: str):
@@ -67,17 +67,19 @@ def main(config: DictConfig):
     torch.manual_seed(config.random_state)
 
     if config.logging:
-        run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
+        if config.loss.loss_fn is not None:
+            loss = f"{config.loss._target_.split('.')[-1]}__{config.loss_fn._target_.split('.')[-1]}
+        else:
+            loss = f"{config.loss._target_.split('.')[-1]}
+        run_name = f"{config.model._target_.split('.')[-1]}__{loss}__{config.random_state}__{int(time.time())}"
         wandb.init(
             project=config.wandb_project_name,
             entity=config.wandb_entity,
             name=run_name,
             config = OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
         )
-        wandb.define_metric("test")
-        wandb.define_metric("Metrics/test.*", step_metric="test")
 
-    train_dataset = load_train_data(config.cache_dir, config.num_workers)
+    train_dataset = load_train_data(config.cache_dir)
     val_dataset = load_val_data(config.cache_dir)
     val_dataset, test_dataset = stratified_split(
         val_dataset,
@@ -90,21 +92,21 @@ def main(config: DictConfig):
     trainer_loader = DataLoader(
         train_dataset,
         collate_fn=collate_fn,
-        batch_size=16,
+        batch_size=config.batch_size,
         num_workers=config.num_workers,
         pin_memory=True,
     )
     val_loader = DataLoader(
         val_dataset,
         collate_fn=collate_fn,
-        batch_size=16,
+        batch_size=config.batch_size,
         num_workers=config.num_workers,
     )
     test_loader = DataLoader(
         test_dataset,
         collate_fn=collate_fn,
-        batch_size=16,
-        num_workers=1,
+        batch_size=config.batch_size,
+        num_workers=0,
     )
 
     model = instantiate(config.model)
