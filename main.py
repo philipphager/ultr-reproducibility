@@ -67,11 +67,7 @@ def main(config: DictConfig):
     torch.manual_seed(config.random_state)
 
     if config.logging:
-        if config.loss.loss_fn is not None:
-            loss = f"{config.loss._target_.split('.')[-1]}__{config.loss_fn._target_.split('.')[-1]}
-        else:
-            loss = f"{config.loss._target_.split('.')[-1]}
-        run_name = f"{config.model._target_.split('.')[-1]}__{loss}__{config.random_state}__{int(time.time())}"
+        run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
         wandb.init(
             project=config.wandb_project_name,
             entity=config.wandb_entity,
@@ -125,7 +121,7 @@ def main(config: DictConfig):
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
         epochs=25,
-        early_stopping=EarlyStopping(metric="dcg@10", patience=2),
+        early_stopping=EarlyStopping(metric="dcg@10", patience=4),
     )
     best_state = trainer.train(model, trainer_loader, val_loader, log_metrics = config.logging)
 
