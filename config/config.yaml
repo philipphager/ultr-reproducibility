@@ -10,5 +10,5 @@ hydra:
   job:
     chdir: True
   sweep:
-    dir: multirun
+    dir: ${run_dir}
     subdir: ${hydra.job.override_dirname}
