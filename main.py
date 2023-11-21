@@ -97,6 +97,7 @@ def main(config: DictConfig):
         collate_fn=collate_fn,
         batch_size=16,
         num_workers=config.num_workers,
+        pin_memory=True,
     )
     test_loader = DataLoader(
         test_dataset,
