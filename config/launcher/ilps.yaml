@@ -6,8 +6,8 @@ defaults:
 hydra:
   launcher:
     nodes: 1
-    array_parallelism: 4
-    mem_gb: 64
-    cpus_per_task: 16
+    mem_gb: 32
+    cpus_per_task: 4
+    array_parallelism: 8
     partition: gpu
     gres: gpu:1
