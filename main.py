@@ -125,6 +125,7 @@ def main(config: DictConfig):
             metric=config.trainer.val_metric,
             patience=config.trainer.patience,
         ),
+        checkpoint=config.trainer.checkpoint,
     )
     best_state = trainer.train(model, trainer_loader, val_loader)
 

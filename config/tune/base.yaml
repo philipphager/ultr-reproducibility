@@ -4,6 +4,9 @@ defaults:
   - override /hydra/sweeper: optuna
   - override /hydra/sweeper/sampler: tpe
 
+trainer:
+  checkpoint: False # Stop storing model checkpoints during hyperparam search
+
 hydra:
   sweeper:
     study_name: ???

@@ -40,6 +40,7 @@ class Trainer:
         metric_fns: Dict[str, Callable],
         epochs: int,
         early_stopping: EarlyStopping,
+        checkpoint: bool,
     ):
         self.random_state = random_state
         self.optimizer = optimizer
@@ -47,6 +48,7 @@ class Trainer:
         self.metric_fns = metric_fns
         self.epochs = epochs
         self.early_stopping = early_stopping
+        self.checkpoint = checkpoint
         self.global_step = 0
 
     def train(
@@ -72,7 +74,9 @@ class Trainer:
 
             if has_improved:
                 best_model_state = state
-                save_state(state, Path(os.getcwd()), "best_state")
+
+                if self.checkpoint:
+                    save_state(state, Path(os.getcwd()), "best_state")
 
             if should_stop:
                 logger.info(f"Epoch: {epoch}: Stopping early")

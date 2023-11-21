@@ -11,6 +11,7 @@ trainer:
   epochs: 50
   patience: 3
   val_metric: ndcg@10
+  checkpoint: True
 
 hydra:
   job:
