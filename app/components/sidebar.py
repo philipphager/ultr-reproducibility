@@ -18,6 +18,5 @@ def draw():
     # Set global variables into session state
     model_directory = get_model_directory()
     assert_directory_exists(model_directory)
-
-    if "model_directory" not in st.session_state:
-        st.session_state["model_directory"] = model_directory
+    
+    st.session_state["model_directory"] = model_directory
