@@ -1,6 +1,5 @@
 import logging
 from functools import partial
-import pyarrow_hotfix; pyarrow_hotfix.uninstall()
 
 import hydra
 import jax
