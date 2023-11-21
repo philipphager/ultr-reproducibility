@@ -1,7 +1,7 @@
 # @package _global_
 
 trainer:
-  learning_rate: 0.01
+  learning_rate: 0.009560730093223512
 
 model:
   relevance_dims: 512

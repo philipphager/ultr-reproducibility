@@ -1,11 +1,11 @@
 # @package _global_
 trainer:
-  learning_rate: 0.0003
+  learning_rate: 0.00012971776010014104
 
 model:
   relevance_dims: 512
   relevance_layers: 2
-  relevance_dropout: 0.5
+  relevance_dropout: 0.0
   bias_dims: 256
   bias_layers: 2
   bias_dropout: 0.5
