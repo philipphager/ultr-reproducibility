@@ -8,8 +8,8 @@ hydra:
   sweeper:
     study_name: ???
     direction: maximize
-    n_trials: 50
-    n_jobs: "${hydra.launcher.array_parallelism}"
+    n_trials: 100
+    n_jobs: "${num_jobs}"
   sweep:
     dir: multirun/tune
     subdir: "${hydra.job.override_dirname}-${hydra.job.num}"
