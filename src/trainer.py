@@ -13,6 +13,7 @@ from pandas import DataFrame
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import wandb
+import time
 
 from src.log import print_metric_table
 from src.util import EarlyStopping, collect_metrics, aggregate_metrics, save_state
@@ -52,6 +53,7 @@ class Trainer:
         state = self._init_train_state(model, train_loader)
         best_model_state = None
 
+        start_time = time.time()
         for epoch in range(self.epochs):
             state, epoch_loss = self._train_epoch(
                 model, state, train_loader, f"Epoch: {epoch} - Training"
@@ -59,16 +61,17 @@ class Trainer:
             val_df = self._eval_epoch(model, state, val_loader, f"Epoch: {epoch} - Val")
             val_metrics = aggregate_metrics(val_df)
 
-            if log_metrics:
-                wandb.log({"Metrics/val" : val_metrics, 
-                        "Metrics/train.loss" : epoch_loss}, step = epoch)
-
             has_improved, should_stop = self.early_stopping.update(val_metrics)
             logger.info(f"Epoch {epoch}: {val_metrics}, has_improved: {has_improved}")
 
             if has_improved:
                 best_model_state = state
                 save_state(state, Path(os.getcwd()), "best_state")
+
+            if log_metrics:
+                wandb.log({"Metrics/val" : val_metrics, 
+                        "Metrics/train.loss" : epoch_loss,
+                        "Misc/TimePerEpoch" : (time.time() - start_time) / (epoch + 1)}, step = epoch)
 
             if should_stop:
                 logger.info(f"Epoch: {epoch}: Stopping early")
