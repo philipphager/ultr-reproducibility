@@ -88,21 +88,21 @@ def main(config: DictConfig):
     trainer_loader = DataLoader(
         train_dataset,
         collate_fn=collate_fn,
-        batch_size=16,
+        batch_size=256,
         num_workers=config.num_workers,
         pin_memory=True,
     )
     val_loader = DataLoader(
         val_dataset,
         collate_fn=collate_fn,
-        batch_size=16,
+        batch_size=256,
         num_workers=config.num_workers,
         pin_memory=True,
     )
     test_loader = DataLoader(
         test_dataset,
         collate_fn=collate_fn,
-        batch_size=16,
+        batch_size=256,
         num_workers=1,
     )
 
