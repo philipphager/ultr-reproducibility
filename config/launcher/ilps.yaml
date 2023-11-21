@@ -10,4 +10,4 @@ hydra:
     cpus_per_task: 8
     array_parallelism: "${num_jobs}"
     partition: gpu
-    gres: gpu:a6000:1
+    gres: gpu:1
