@@ -1,0 +1,5 @@
+_target_: src.loss.top_obs
+_partial_: True
+loss_fn:
+  _target_: rax.listmle_loss
+  _partial_: True

@@ -6,6 +6,7 @@ defaults:
 
 random_state: 381
 batch_size: 256
+lr: 0.00001
 
 hydra:
   job:

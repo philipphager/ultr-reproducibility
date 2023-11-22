@@ -88,3 +88,14 @@ def _get_normalized_weights(
     weights = weights.clip(max=max_weight)
 
     return stop_gradient(weights)
+
+def top_obs(
+    scores: Array,
+    labels: Array,
+    where: Array,
+    loss_fn: LossFn = rax.listmle_loss,
+) -> Array:
+    """
+    TopObs, i.e., replication of the logging policy.
+    """
+    return loss_fn(scores, jnp.broadcast_to(jnp.power(jnp.arange(labels.shape[1], 0, -1), 2), labels.shape), where=where)
