@@ -67,7 +67,7 @@ class Trainer:
             val_df = self._eval_epoch(model, state, val_loader, f"Epoch: {epoch} - Val")
             val_metrics = aggregate_metrics(val_df)
 
-            wandb.log({Stage.VAL: val_metrics}, epoch)
+            wandb.log({Stage.VAL: val_metrics})
 
             has_improved, should_stop = self.early_stopping.update(val_metrics)
             logger.info(f"Epoch {epoch}: {val_metrics}, has_improved: {has_improved}")
@@ -116,9 +116,7 @@ class Trainer:
     def _train_epoch(self, model, state, loader, description):
         for batch in tqdm(loader, desc=description):
             state, loss = self._train_step(model, state, batch)
-            if self.global_step % (100 * loader.batch_size) == 0:
-                wandb.log({Stage.TRAIN: {"loss": loss}}, self.global_step)
-            self.global_step += loader.batch_size
+            wandb.log({Stage.TRAIN: {"loss": loss}})
 
         return state
 
