@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional, Callable
 
 import jax.numpy as jnp
 import rax
@@ -13,6 +13,7 @@ def regression_em(
     labels: Array,
     where: Array,
     loss_fn: LossFn = rax.pointwise_sigmoid_loss,
+    reduce_fn: Optional[Callable] = jnp.mean,
 ) -> Array:
     """
     Implementation of RegressionEM from Wang et al, 2018: https://research.google/pubs/pub46485/
@@ -24,8 +25,8 @@ def regression_em(
     examination_posterior = _get_posterior(examination, relevance, labels)
     relevance_posterior = _get_posterior(relevance, examination, labels)
 
-    examination_loss = loss_fn(examination, examination_posterior, where=where)
-    relevance_loss = loss_fn(relevance, relevance_posterior, where=where)
+    examination_loss = loss_fn(examination, examination_posterior, where=where, reduce_fn=reduce_fn)
+    relevance_loss = loss_fn(relevance, relevance_posterior, where=where, reduce_fn=reduce_fn)
 
     return examination_loss + relevance_loss
 
@@ -42,6 +43,7 @@ def dual_learning_algorithm(
     where: Array,
     loss_fn: LossFn = rax.softmax_loss,
     max_weight: float = 10,
+    reduce_fn: Optional[Callable] = jnp.mean,
 ) -> Array:
     """
     Implementation of the Dual Learning Algorithm from Ai et al, 2018: https://arxiv.org/pdf/1804.05938.pdf
@@ -56,12 +58,14 @@ def dual_learning_algorithm(
         labels,
         where=where,
         weights=relevance_weights,
+        reduce_fn=reduce_fn,
     )
     relevance_loss = loss_fn(
         relevance,
         labels,
         where=where,
         weights=examination_weights,
+        reduce_fn=reduce_fn,
     )
 
     return examination_loss + relevance_loss
@@ -93,9 +97,13 @@ def top_obs(
     scores: Array,
     labels: Array,
     where: Array,
-    loss_fn: LossFn = rax.listmle_loss,
+    loss_fn: LossFn = rax.pointwise_mse_loss,
+    reduce_fn: Optional[Callable] = jnp.mean,
 ) -> Array:
     """
     TopObs, i.e., replication of the logging policy.
     """
-    return loss_fn(scores, jnp.broadcast_to(jnp.power(jnp.arange(labels.shape[1], 0, -1), 2), labels.shape), where=where)
+    return loss_fn(scores, 
+                jnp.broadcast_to(jnp.power(jnp.arange(labels.shape[1], 0, -1), 2), labels.shape), 
+                where=where,
+                reduce_fn=reduce_fn,)

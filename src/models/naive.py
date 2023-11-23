@@ -16,8 +16,9 @@ class NaiveModel(nn.Module):
             dropouts=self.relevance_dropouts,
         )
 
-    def __call__(self, batch, training: bool = False) -> Union[Array]:
-        return self.predict_relevance(batch, training)
+    def __call__(self, batch, training: bool = False) -> Tuple[Array, Array, None]:
+        relevance = self.predict_relevance(batch, training)
+        return relevance, relevance, None
 
     def predict_relevance(self, batch, training: bool = False) -> Array:
         x = batch["query_document_embedding"]

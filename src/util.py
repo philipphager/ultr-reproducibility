@@ -4,6 +4,7 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 from flax.training import early_stopping
+import jax
 from jax import Array
 from orbax.checkpoint import PyTreeCheckpointer
 
@@ -53,13 +54,16 @@ def collect_metrics(results: List[Dict[str, Array]]) -> pd.DataFrame:
     return df.explode(column=list(df.columns)).reset_index(drop=True)
 
 
-def aggregate_metrics(metric_df: pd.DataFrame, ignore_columns=["query_id"]) -> Dict:
-    metric_df = metric_df.drop(columns=ignore_columns)
-    return metric_df.mean(axis=0).to_dict()
+def aggregate_metrics(click_metric_df: pd.DataFrame | None, rel_metric_df: pd.DataFrame | None, ignore_columns=["query_id"]) -> Dict:
+    rel_metric_df = rel_metric_df.drop(columns=ignore_columns)
+    if click_metric_df is None:
+        return rel_metric_df.mean(axis=0).to_dict()
+    else:
+        return dict(**(click_metric_df.mean(axis=0).to_dict()), **(rel_metric_df.mean(axis=0).to_dict()))
 
 
 def dict_to_numpy(_dict: Dict[str, Array]) -> Dict[str, np.ndarray]:
-    return {k: np.array(v) for k, v in _dict.items()}
+    return {k: jax.device_get(v) for k, v in _dict.items()}
 
 
 def save_state(state: TrainState, directory: Path, name: str = "best_state"):

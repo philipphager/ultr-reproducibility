@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 import wandb
 import time
 
-from src.data import collate_fn, hash_labels, discretize, stratified_split
+from src.data import collate_fn, hash_labels, discretize, random_split, stratified_split
 from src.trainer import Trainer
 from src.util import EarlyStopping
 
@@ -75,31 +75,49 @@ def main(config: DictConfig):
             config = OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
         )
 
-    train_dataset = load_train_data(config.cache_dir)
-    val_dataset = load_val_data(config.cache_dir)
-    val_dataset, test_dataset = stratified_split(
-        val_dataset,
+    train_click_dataset = load_train_data(config.cache_dir)
+    train_click_dataset, val_click_dataset, test_click_dataset = random_split(
+        train_click_dataset,
+        shuffle=True,
+        random_state=config.random_state,
+        val_size=0.1,
+        test_size=0.1,
+    )
+    val_rel_dataset = load_val_data(config.cache_dir)
+    val_rel_dataset, test_rel_dataset = stratified_split(
+        val_rel_dataset,
         shuffle=True,
         random_state=config.random_state,
         test_size=0.5,
         stratify="frequency_bucket",
     )
 
-    trainer_loader = DataLoader(
-        train_dataset,
+    train_loader = DataLoader(
+        train_click_dataset,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
         num_workers=config.num_workers,
         pin_memory=True,
     )
-    val_loader = DataLoader(
-        val_dataset,
+    val_click_loader = DataLoader(
+        val_click_dataset,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
         num_workers=config.num_workers,
     )
-    test_loader = DataLoader(
-        test_dataset,
+    test_click_loader = DataLoader(
+        test_click_dataset,
+        collate_fn=collate_fn,
+        batch_size=config.batch_size,
+        num_workers=0,
+    )
+    val_rel_loader = DataLoader(
+        val_rel_dataset,
+        collate_fn=collate_fn,
+        batch_size=config.batch_size,
+    )
+    test_rel_loader = DataLoader(
+        test_rel_dataset,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
         num_workers=0,
@@ -121,17 +139,15 @@ def main(config: DictConfig):
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
         epochs=25,
-        early_stopping=EarlyStopping(metric="dcg@10", patience=4),
+        early_stopping=EarlyStopping(metric="click_dcg@10", patience=4),
     )
-    best_state = trainer.train(model, trainer_loader, val_click_loader = None, val_rel_loader = val_loader, log_metrics = config.logging)
+    best_state = trainer.train(model, train_loader, val_click_loader, val_rel_loader, log_metrics = config.logging)
 
-    _, val_df = trainer.test(model, best_state, test_click_loader = None, test_rel_loader = val_loader, 
-                             description = "Validation", log_metrics = config.logging)
-    val_df.to_parquet("val.parquet")
+    _, val_rel_df = trainer.test(model, best_state, val_click_loader, val_rel_loader, "Validation", log_metrics = config.logging)
+    val_rel_df.to_parquet("val.parquet")
 
-    _, test_df = trainer.test(model, best_state, test_click_loader = None, test_rel_loader = test_loader, 
-                              description = "Testing")
-    test_df.to_parquet("test.parquet")
+    _, test_rel_df = trainer.test(model, best_state, test_click_loader, test_rel_loader, "Testing")
+    test_rel_df.to_parquet("test.parquet")
 
     if config.logging:
         wandb.finish()
