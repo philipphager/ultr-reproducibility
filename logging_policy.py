@@ -146,7 +146,7 @@ def main(config: DictConfig):
     _, val_rel_df = trainer.test(model, best_state, val_click_loader, val_rel_loader, "Validation", log_metrics = config.logging)
     val_rel_df.to_parquet("val.parquet")
 
-    _, test_rel_df = trainer.test(model, best_state, test_click_loader, test_rel_loader, "Testing")
+    _, test_rel_df = trainer.test(model, best_state, test_click_loader, test_rel_loader, "Testing", log_metrics = config.logging)
     test_rel_df.to_parquet("test.parquet")
 
     if config.logging:

@@ -130,7 +130,7 @@ def main(config: DictConfig):
     val_df.to_parquet("val.parquet")
 
     _, test_df = trainer.test(model, best_state, test_click_loader = None, test_rel_loader = test_loader, 
-                              description = "Testing")
+                              description = "Testing", log_metrics = config.logging)
     test_df.to_parquet("test.parquet")
 
     if config.logging:
