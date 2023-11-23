@@ -104,6 +104,6 @@ def top_obs(
     TopObs, i.e., replication of the logging policy.
     """
     return loss_fn(scores, 
-                jnp.broadcast_to(jnp.power(jnp.arange(labels.shape[1], 0, -1), 2), labels.shape), 
+                jnp.broadcast_to(jnp.power( 1 / jnp.arange(1, labels.shape[1]+1), 2), labels.shape),
                 where=where,
                 reduce_fn=reduce_fn,)

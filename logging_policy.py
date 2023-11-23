@@ -73,6 +73,7 @@ def main(config: DictConfig):
             entity=config.wandb_entity,
             name=run_name,
             config = OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
+            save_code=True,
         )
 
     train_click_dataset = load_train_data(config.cache_dir)
