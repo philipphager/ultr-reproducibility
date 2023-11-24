@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -54,7 +54,8 @@ def collect_metrics(results: List[Dict[str, Array]]) -> pd.DataFrame:
     return df.explode(column=list(df.columns)).reset_index(drop=True)
 
 
-def aggregate_metrics(click_metric_df: pd.DataFrame | None, rel_metric_df: pd.DataFrame | None, ignore_columns=["query_id"]) -> Dict:
+def aggregate_metrics(click_metric_df: pd.DataFrame | None, rel_metric_df: pd.DataFrame, 
+                        ignore_columns=["query_id", "frequency_bucket"]) -> Dict[str, float]:
     rel_metric_df = rel_metric_df.drop(columns=ignore_columns)
     if click_metric_df is None:
         return rel_metric_df.mean(axis=0).to_dict()
