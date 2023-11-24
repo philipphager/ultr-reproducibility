@@ -1,4 +1,5 @@
 import logging
+import time
 from functools import partial
 
 import hydra
@@ -8,15 +9,14 @@ import pyarrow
 pyarrow.PyExtensionType.set_auto_load(True)
 import rax
 import torch
+import wandb
+
 from datasets import load_dataset
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader
-import wandb
-import time
-
 from src.data import collate_fn, hash_labels, discretize, random_split, stratified_split
 from src.trainer import Trainer
 from src.util import EarlyStopping
@@ -72,7 +72,7 @@ def main(config: DictConfig):
             project=config.wandb_project_name,
             entity=config.wandb_entity,
             name=run_name,
-            config = OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
+            config=OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
             save_code=True,
         )
 
@@ -142,12 +142,32 @@ def main(config: DictConfig):
         epochs=25,
         early_stopping=EarlyStopping(metric="click_dcg@10", patience=4),
     )
-    best_state = trainer.train(model, train_loader, val_click_loader, val_rel_loader, log_metrics = config.logging)
+    best_state = trainer.train(
+        model,
+        train_loader,
+        val_click_loader,
+        val_rel_loader,
+        log_metrics=config.logging,
+    )
 
-    _, val_rel_df = trainer.test(model, best_state, val_click_loader, val_rel_loader, "Validation", log_metrics = config.logging)
+    _, val_rel_df = trainer.test(
+        model,
+        best_state,
+        val_click_loader,
+        val_rel_loader,
+        "Validation",
+        log_metrics=config.logging,
+    )
     val_rel_df.to_parquet("val.parquet")
 
-    _, test_rel_df = trainer.test(model, best_state, test_click_loader, test_rel_loader, "Testing", log_metrics = config.logging)
+    _, test_rel_df = trainer.test(
+        model,
+        best_state,
+        test_click_loader,
+        test_rel_loader,
+        "Testing",
+        log_metrics=config.logging,
+    )
     test_rel_df.to_parquet("test.parquet")
 
     if config.logging:
