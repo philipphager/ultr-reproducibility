@@ -59,7 +59,9 @@ class Trainer:
             state, epoch_loss = self._train_epoch(
                 model, state, train_loader, f"Epoch: {epoch} - Training"
             )
-            val_click_df, val_rel_df = self._eval_epoch(model, state, val_click_loader, val_rel_loader, f"Epoch: {epoch} - Val")
+            val_click_df, val_rel_df = self._eval_epoch(
+                model, state, val_click_loader, val_rel_loader, f"Epoch: {epoch} - Val"
+            )
             val_metrics = aggregate_metrics(val_click_df, val_rel_df)
 
             has_improved, should_stop = self.early_stopping.update(val_metrics)
@@ -70,9 +72,14 @@ class Trainer:
                 save_state(state, Path(os.getcwd()), "best_state")
 
             if log_metrics:
-                wandb.log({"Metrics/val" : val_metrics, 
-                        "Metrics/train.loss" : epoch_loss,
-                        "Misc/TimePerEpoch" : (time.time() - start_time) / (epoch + 1)}, step = epoch)
+                wandb.log(
+                    {
+                        "Metrics/val": val_metrics,
+                        "Metrics/train.loss": epoch_loss,
+                        "Misc/TimePerEpoch": (time.time() - start_time) / (epoch + 1),
+                    },
+                    step=epoch,
+                )
 
             if should_stop:
                 logger.info(f"Epoch: {epoch}: Stopping early")
@@ -89,10 +96,12 @@ class Trainer:
         description: str = "Testing",
         log_metrics: bool = True,
     ) -> Tuple[DataFrame | None, DataFrame | None]:
-        test_click_df, test_rel_df = self._eval_epoch(model, state, test_click_loader, test_rel_loader, description)
+        test_click_df, test_rel_df = self._eval_epoch(
+            model, state, test_click_loader, test_rel_loader, description
+        )
         test_metrics = aggregate_metrics(test_click_df, test_rel_df)
         if log_metrics and description == "Testing":
-            wandb.log({"Metrics/test" : test_metrics})
+            wandb.log({"Metrics/test": test_metrics})
         print_metric_table(test_metrics, description)
 
         return test_click_df, test_rel_df
@@ -163,12 +172,18 @@ class Trainer:
             training=False,
             rngs={"dropout": state.dropout_key},
         )
-        reduce_fn = lambda a, where : a.reshape(len(a), -1).mean(axis = 1, where = where)
-            ### This is an issue with rax's API: reduce_fn behaves differently for pointwise and listwise losses
-        results = {"click_loss": self.criterion(y_predict, batch["click"], where=batch["mask"], reduce_fn = reduce_fn)}
+        reduce_fn = lambda a, where: a.reshape(len(a), -1).mean(axis=1, where=where)
+        # This is an issue with rax's API: reduce_fn behaves differently for pointwise and listwise losses
+        results = {
+            "click_loss": self.criterion(
+                y_predict, batch["click"], where=batch["mask"], reduce_fn=reduce_fn
+            )
+        }
 
         for name, metric_fn in self.metric_fns.items():
-            results[f"click_{name}"] = metric_fn(rel_predict, 1 / batch["position"], where=batch["mask"], reduce_fn=None)
+            results[f"click_{name}"] = metric_fn(
+                rel_predict, 1 / batch["position"], where=batch["mask"], reduce_fn=None
+            )
         return results
 
     @partial(jit, static_argnums=(0, 1))
