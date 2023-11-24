@@ -50,7 +50,7 @@ class Trainer:
         val_click_loader: Optional[DataLoader] = None,
         val_rel_loader: Optional[DataLoader] = None,
         log_metrics: bool = True,
-    ) -> TrainState | None:
+    ) -> TrainState:
         state = self._init_train_state(model, train_loader)
         best_model_state = None
 
