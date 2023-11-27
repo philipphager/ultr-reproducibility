@@ -5,6 +5,7 @@ import hydra
 import jax
 import optax
 import pyarrow
+
 pyarrow.PyExtensionType.set_auto_load(True)
 import rax
 import torch
@@ -72,7 +73,7 @@ def main(config: DictConfig):
             project=config.wandb_project_name,
             entity=config.wandb_entity,
             name=run_name,
-            config = OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
+            config=OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
         )
 
     train_dataset = load_train_data(config.cache_dir)
@@ -123,14 +124,32 @@ def main(config: DictConfig):
         epochs=25,
         early_stopping=EarlyStopping(metric="dcg@10", patience=4),
     )
-    best_state = trainer.train(model, trainer_loader, val_click_loader = None, val_rel_loader = val_loader, log_metrics = config.logging)
+    best_state = trainer.train(
+        model,
+        trainer_loader,
+        val_click_loader=None,
+        val_rel_loader=val_loader,
+        log_metrics=config.logging,
+    )
 
-    _, val_df = trainer.test(model, best_state, test_click_loader = None, test_rel_loader = val_loader, 
-                             description = "Validation", log_metrics = config.logging)
+    _, val_df = trainer.test(
+        model,
+        best_state,
+        test_click_loader=None,
+        test_rel_loader=val_loader,
+        description="Validation",
+        log_metrics=config.logging,
+    )
     val_df.to_parquet("val.parquet")
 
-    _, test_df = trainer.test(model, best_state, test_click_loader = None, test_rel_loader = test_loader, 
-                              description = "Testing", log_metrics = config.logging)
+    _, test_df = trainer.test(
+        model,
+        best_state,
+        test_click_loader=None,
+        test_rel_loader=test_loader,
+        description="Testing",
+        log_metrics=config.logging,
+    )
     test_df.to_parquet("test.parquet")
 
     if config.logging:
