@@ -93,7 +93,7 @@ def _get_normalized_weights(
 
     return stop_gradient(weights)
 
-def top_obs(
+def behavior_cloning(
     scores: Array,
     labels: Array,
     where: Array,
@@ -101,7 +101,7 @@ def top_obs(
     reduce_fn: Optional[Callable] = jnp.mean,
 ) -> Array:
     """
-    TopObs, i.e., replication of the logging policy.
+    Behavior cloning, i.e., replication of the logging policy, by learning to predict the observed position of the item at hand.
     """
     return loss_fn(scores, 
                 jnp.broadcast_to(jnp.power( 1 / jnp.arange(1, labels.shape[1]+1), 2), labels.shape),
