@@ -44,8 +44,8 @@ class Trainer:
         self,
         model: nn.Module,
         train_loader: DataLoader,
-        val_click_loader: Optional[DataLoader] = None,
-        val_rel_loader: Optional[DataLoader] = None,
+        val_click_loader: Optional[DataLoader],
+        val_rel_loader: Optional[DataLoader],
         log_metrics: bool = True,
     ) -> TrainState:
         state = self._init_train_state(model, train_loader)
@@ -88,11 +88,11 @@ class Trainer:
         self,
         model: nn.Module,
         state: TrainState,
-        test_click_loader: Optional[DataLoader] = None,
-        test_rel_loader: Optional[DataLoader] = None,
+        test_click_loader: Optional[DataLoader],
+        test_rel_loader: Optional[DataLoader],
         description: str = "Testing",
         log_metrics: bool = True,
-    ) -> Tuple[DataFrame | None, DataFrame]:
+    ) -> Tuple[DataFrame, DataFrame]:
         test_click_df, test_rel_df = self._eval_epoch(model, state, test_click_loader, test_rel_loader, description)
         test_metrics = aggregate_metrics(test_click_df, test_rel_df)
         if log_metrics and description == "Testing":
@@ -127,17 +127,13 @@ class Trainer:
 
     def _eval_epoch(self, model, state, click_loader, rel_loader, description):
         click_metrics, rel_metrics = [], []
-        click_df, rel_df = None, None
 
-        if click_loader is not None:
-            for batch in tqdm(click_loader, desc=description):
-                click_metrics.append(self._eval_click_step(model, state, batch))
-            click_df = collect_metrics(click_metrics)
+        for batch in tqdm(click_loader, desc=description):
+            click_metrics.append(self._eval_click_step(model, state, batch))
         for batch in tqdm(rel_loader, desc=description):
             rel_metrics.append(self._eval_rel_step(model, state, batch))
-        rel_df = collect_metrics(rel_metrics)
 
-        return click_df, rel_df
+        return collect_metrics(click_metrics), collect_metrics(rel_metrics)
 
     @partial(jit, static_argnums=(0, 1))
     def _train_step(self, model, state, batch):
