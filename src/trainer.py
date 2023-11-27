@@ -6,23 +6,20 @@ from typing import Dict, Callable, Tuple, Optional
 
 import flax.linen as nn
 import jax
-from flax.training import train_state
-from flax.training.train_state import TrainState
 from jax import jit
 from pandas import DataFrame
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import wandb
 import time
+from flax.training import train_state
+class TrainState(train_state.TrainState):
+    dropout_key: jax.Array
 
 from src.log import print_metric_table
 from src.util import EarlyStopping, collect_metrics, aggregate_metrics, save_state
 
 logger = logging.getLogger("rich")
-
-
-class TrainState(train_state.TrainState):
-    dropout_key: jax.Array
 
 
 class Trainer:
@@ -52,7 +49,7 @@ class Trainer:
         log_metrics: bool = True,
     ) -> TrainState:
         state = self._init_train_state(model, train_loader)
-        best_model_state = None
+        best_model_state = state
 
         start_time = time.time()
         for epoch in range(self.epochs):
@@ -95,10 +92,8 @@ class Trainer:
         test_rel_loader: Optional[DataLoader] = None,
         description: str = "Testing",
         log_metrics: bool = True,
-    ) -> Tuple[DataFrame | None, DataFrame | None]:
-        test_click_df, test_rel_df = self._eval_epoch(
-            model, state, test_click_loader, test_rel_loader, description
-        )
+    ) -> Tuple[DataFrame | None, DataFrame]:
+        test_click_df, test_rel_df = self._eval_epoch(model, state, test_click_loader, test_rel_loader, description)
         test_metrics = aggregate_metrics(test_click_df, test_rel_df)
         if log_metrics and description == "Testing":
             wandb.log({"Metrics/test": test_metrics})
@@ -138,10 +133,9 @@ class Trainer:
             for batch in tqdm(click_loader, desc=description):
                 click_metrics.append(self._eval_click_step(model, state, batch))
             click_df = collect_metrics(click_metrics)
-        if rel_loader is not None:
-            for batch in tqdm(rel_loader, desc=description):
-                rel_metrics.append(self._eval_rel_step(model, state, batch))
-            rel_df = collect_metrics(rel_metrics)
+        for batch in tqdm(rel_loader, desc=description):
+            rel_metrics.append(self._eval_rel_step(model, state, batch))
+        rel_df = collect_metrics(rel_metrics)
 
         return click_df, rel_df
 
@@ -188,7 +182,7 @@ class Trainer:
 
     @partial(jit, static_argnums=(0, 1))
     def _eval_rel_step(self, model, state, batch):
-        query_ids, label, mask = batch["query_id"], batch["label"], batch["mask"]
+        query_ids, label, mask, frequency_buckets = batch["query_id"], batch["label"], batch["mask"], batch["frequency_bucket"]
 
         y_predict = model.apply(
             state.params,
@@ -198,7 +192,7 @@ class Trainer:
             method=model.predict_relevance,
         )
 
-        results = {"query_id": query_ids}
+        results = {"query_id": query_ids, "frequency_bucket": frequency_buckets}
 
         for name, metric_fn in self.metric_fns.items():
             results[name] = metric_fn(y_predict, label, where=mask, reduce_fn=None)

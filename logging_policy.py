@@ -139,7 +139,7 @@ def main(config: DictConfig):
             "dcg@05": partial(rax.dcg_metric, topn=5),
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
-        epochs=25,
+        epochs=config.max_epochs,
         early_stopping=EarlyStopping(metric="click_dcg@10", patience=4),
     )
     best_state = trainer.train(
