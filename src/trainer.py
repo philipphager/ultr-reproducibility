@@ -59,7 +59,7 @@ class Trainer:
             val_click_df, val_rel_df = self._eval_epoch(
                 model, state, val_click_loader, val_rel_loader, f"Epoch: {epoch} - Val"
             )
-            val_metrics = aggregate_metrics(val_click_df, val_rel_df)
+            val_metrics = {**aggregate_metrics(val_click_df), **aggregate_metrics(val_rel_df)}
 
             has_improved, should_stop = self.early_stopping.update(val_metrics)
             logger.info(f"Epoch {epoch}: {val_metrics}, has_improved: {has_improved}")
@@ -94,7 +94,7 @@ class Trainer:
         log_metrics: bool = True,
     ) -> Tuple[DataFrame, DataFrame]:
         test_click_df, test_rel_df = self._eval_epoch(model, state, test_click_loader, test_rel_loader, description)
-        test_metrics = aggregate_metrics(test_click_df, test_rel_df)
+        test_metrics = {**aggregate_metrics(test_click_df), **aggregate_metrics(test_rel_df)}
         if log_metrics and description == "Testing":
             wandb.log({"Metrics/test": test_metrics})
         print_metric_table(test_metrics, description)

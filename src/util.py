@@ -48,19 +48,15 @@ def collect_metrics(results: List[Dict[str, Array]]) -> pd.DataFrame:
     ]
     """
     # Convert Jax Arrays to numpy:
-    results = [dict_to_numpy(r) for r in results]
+    np_results = [dict_to_numpy(r) for r in results]
     # Unroll values in batches into individual rows:
-    df = pd.DataFrame(results)
+    df = pd.DataFrame(np_results)
     return df.explode(column=list(df.columns)).reset_index(drop=True)
 
 
-def aggregate_metrics(click_metric_df: pd.DataFrame | None, rel_metric_df: pd.DataFrame, 
-                        ignore_columns=["query_id", "frequency_bucket"]) -> Dict[str, float]:
-    rel_metric_df = rel_metric_df.drop(columns=ignore_columns)
-    if click_metric_df is None:
-        return rel_metric_df.mean(axis=0).to_dict()
-    else:
-        return dict(**(click_metric_df.mean(axis=0).to_dict()), **(rel_metric_df.mean(axis=0).to_dict()))
+def aggregate_metrics(df: pd.DataFrame, ignore_columns=["query_id", "frequency_bucket"]) -> Dict[str, float]:
+    df = df.drop(columns=ignore_columns, errors = "ignore")
+    return df.mean(axis=0).to_dict()
 
 
 def dict_to_numpy(_dict: Dict[str, Array]) -> Dict[str, np.ndarray]:
