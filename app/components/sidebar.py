@@ -1,4 +1,5 @@
 from pathlib import Path
+import yaml
 
 import streamlit as st
 
@@ -10,7 +11,10 @@ def assert_directory_exists(path: Path):
 
 
 def get_model_directory() -> Path:
-    model_directory = st.sidebar.text_input("Model directory", "multirun/")
+    with open('config/user_const.yaml', 'r') as file:
+        dirpath = yaml.safe_load(file)["run_dir"]
+
+    model_directory = st.sidebar.text_input("Model directory", dirpath)
     return Path(model_directory)
 
 
