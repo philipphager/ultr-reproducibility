@@ -191,13 +191,18 @@ class Trainer:
             training=False,
             rngs={"dropout": state.dropout_key},
         )
-        reduce_fn = lambda a, where: a.reshape(len(a), -1).mean(axis=1, where=where)
+
         # This is an issue with rax's API: reduce_fn behaves differently for pointwise and listwise losses
-        results = {
-            "click_loss": self.criterion(
-                y_predict, batch["click"], where=batch["mask"], reduce_fn=reduce_fn
-            )
-        }
+        reduce_fn = lambda a, where: a.reshape(len(a), -1).mean(axis=1, where=where)
+
+        loss = self.criterion(
+            y_predict,
+            batch["click"],
+            where=batch["mask"],
+            reduce_fn=reduce_fn,
+        )
+
+        results = {"click_loss": loss}
 
         for name, metric_fn in self.metric_fns.items():
             results[f"BC_{name}"] = metric_fn(
