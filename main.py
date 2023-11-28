@@ -37,7 +37,10 @@ BAIDU_DATASET = "philipphager/baidu-ultr"
 
 def load_train_data(cache_dir: str):
     train_dataset = load_dataset(
-        BAIDU_DATASET, name="clicks-1p", split="train", cache_dir=cache_dir
+        BAIDU_DATASET,
+        name="clicks-1p",
+        split="train",
+        cache_dir=cache_dir,
     )
     train_dataset.set_format("numpy")
 
@@ -55,7 +58,10 @@ def load_train_data(cache_dir: str):
 
 def load_val_data(cache_dir: str):
     val_dataset = load_dataset(
-        BAIDU_DATASET, name="annotations", split="validation", cache_dir=cache_dir
+        BAIDU_DATASET,
+        name="annotations",
+        split="validation",
+        cache_dir=cache_dir,
     )
     val_dataset.set_format("numpy")
     return val_dataset
@@ -107,14 +113,15 @@ def main(config: DictConfig):
         num_workers=config.num_workers,
         pin_memory=True,
     )
-    test_click_loader = DataLoader(
-        test_click_dataset,
-        collate_fn=collate_fn,
-        batch_size=config.batch_size,
-        num_workers=0,
-    )
     val_rel_loader = DataLoader(
         val_rel_dataset,
+        collate_fn=collate_fn,
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        pin_memory=True,
+    )
+    test_click_loader = DataLoader(
+        test_click_dataset,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
     )
@@ -122,7 +129,6 @@ def main(config: DictConfig):
         test_rel_dataset,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
-        num_workers=0,
     )
 
     model = instantiate(config.model)
