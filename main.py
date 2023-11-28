@@ -90,7 +90,7 @@ def main(config: DictConfig):
         test_size=0.2,
     )
     val_click_dataset, test_click_dataset = random_split(
-        train_click_dataset,
+        test_click_dataset,
         shuffle=True,
         random_state=config.random_state,
         test_size=0.5,
