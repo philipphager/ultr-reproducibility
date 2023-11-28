@@ -1,4 +1,4 @@
-from typing import Union, Tuple, List
+from typing import Union, Tuple
 
 from flax import linen as nn
 from jax import Array
