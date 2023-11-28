@@ -1,25 +1,25 @@
 import enum
 import logging
 import os
+import time
 from functools import partial
 from pathlib import Path
 from typing import Dict, Callable, Tuple, Optional
 
 import flax.linen as nn
 import jax
-
+import wandb
+from flax.training import train_state
 from jax import jit
 from pandas import DataFrame
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-import wandb
-import time
-from flax.training import train_state
 from src.log import print_metric_table
 from src.util import EarlyStopping, collect_metrics, aggregate_metrics, save_state
 
 logger = logging.getLogger("rich")
+
 
 class TrainState(train_state.TrainState):
     dropout_key: jax.Array
@@ -29,6 +29,7 @@ class Stage(str, enum.Enum):
     TRAIN = "train"
     VAL = "val"
     TEST = "test"
+
 
 class Trainer:
     def __init__(
@@ -102,7 +103,6 @@ class Trainer:
         self,
         model: nn.Module,
         state: TrainState,
-
         test_click_loader: Optional[DataLoader],
         test_rel_loader: Optional[DataLoader],
         description: str = "Testing",
