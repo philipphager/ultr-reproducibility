@@ -142,7 +142,12 @@ def main(config: DictConfig):
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
         epochs=config.max_epochs,
-        early_stopping=EarlyStopping(metric=config.es_metric, patience=config.es_patience),
+        early_stopping=EarlyStopping(
+            metric=config.es_metric,
+            patience=config.es_patience,
+        ),
+        save_checkpoints=config.checkpoints,
+        log_metrics=config.logging,
     )
     best_state = trainer.train(
         model,
@@ -164,7 +169,6 @@ def main(config: DictConfig):
         val_click_loader,
         val_rel_loader,
         "Validation",
-        log_metrics=config.logging,
     )
     val_rel_df.to_parquet("val.parquet")
 
@@ -174,7 +178,6 @@ def main(config: DictConfig):
         test_click_loader,
         test_rel_loader,
         "Testing",
-        log_metrics=config.logging,
     )
     test_rel_df.to_parquet("test.parquet")
 

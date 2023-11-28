@@ -5,4 +5,5 @@ num_jobs: 8
 wandb_project_name: baidu-reproducibility
 wandb_entity: cm-offline-metrics
 logging: True
+checkpoints: True
 progress_bar: True

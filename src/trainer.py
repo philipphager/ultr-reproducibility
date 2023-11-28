@@ -40,7 +40,8 @@ class Trainer:
         metric_fns: Dict[str, Callable],
         epochs: int,
         early_stopping: EarlyStopping,
-        checkpoint: bool,
+        save_checkpoints: bool = True,
+        log_metrics: bool = True,
     ):
         self.random_state = random_state
         self.optimizer = optimizer
@@ -48,7 +49,8 @@ class Trainer:
         self.metric_fns = metric_fns
         self.epochs = epochs
         self.early_stopping = early_stopping
-        self.checkpoint = checkpoint
+        self.save_checkpoints = save_checkpoints
+        self.log_metrics = log_metrics
         self.global_step = 0
 
     def train(
@@ -57,7 +59,6 @@ class Trainer:
         train_loader: DataLoader,
         val_click_loader: Optional[DataLoader],
         val_rel_loader: Optional[DataLoader],
-        log_metrics: bool = True,
     ) -> TrainState:
         state = self._init_train_state(model, train_loader)
         best_model_state = state
@@ -71,7 +72,9 @@ class Trainer:
             val_click_df, val_rel_df = self._eval_epoch(
                 model, state, val_click_loader, val_rel_loader, f"Epoch: {epoch} - Val"
             )
-            val_click_metrics, val_rel_metrics = aggregate_metrics(val_click_df), aggregate_metrics(val_rel_df)
+            val_click_metrics, val_rel_metrics = aggregate_metrics(
+                val_click_df
+            ), aggregate_metrics(val_rel_df)
             val_metrics = {**val_click_metrics, **val_rel_metrics}
 
             has_improved, should_stop = self.early_stopping.update(val_metrics)
@@ -83,7 +86,7 @@ class Trainer:
                 if self.checkpoint:
                     save_state(state, Path(os.getcwd()), "best_state")
 
-            if log_metrics:
+            if self.log_metrics:
                 wandb.log(
                     {
                         "Val/": val_metrics,
@@ -99,19 +102,22 @@ class Trainer:
 
         return best_model_state
 
-    def eval(
+    def test(
         self,
         model: nn.Module,
         state: TrainState,
         test_click_loader: Optional[DataLoader],
         test_rel_loader: Optional[DataLoader],
         description: str = "Testing",
-        log_metrics: bool = True,
     ) -> Tuple[DataFrame, DataFrame]:
-        test_click_df, test_rel_df = self._eval_epoch(model, state, test_click_loader, test_rel_loader, description)
-        test_click_metrics, test_rel_metrics = aggregate_metrics(test_click_df), aggregate_metrics(test_rel_df)
-        test_metrics= {**test_click_metrics, **test_rel_metrics}
-        if log_metrics and description == "Testing":
+        test_click_df, test_rel_df = self._eval_epoch(
+            model, state, test_click_loader, test_rel_loader, description
+        )
+        test_click_metrics, test_rel_metrics = aggregate_metrics(
+            test_click_df
+        ), aggregate_metrics(test_rel_df)
+        test_metrics = {**test_click_metrics, **test_rel_metrics}
+        if self.log_metrics and description == "Testing":
             wandb.log({"Test/": test_metrics})
         print_metric_table(test_metrics, description)
 
@@ -141,7 +147,6 @@ class Trainer:
             self.global_step += loader.batch_size
         epoch_loss /= len(loader)
         return state, epoch_loss
-
 
     def _eval_epoch(self, model, state, click_loader, rel_loader, description):
         click_metrics, rel_metrics = [], []
@@ -196,7 +201,12 @@ class Trainer:
 
     @partial(jit, static_argnums=(0, 1))
     def _eval_rel_step(self, model, state, batch):
-        query_ids, label, mask, frequency_buckets = batch["query_id"], batch["label"], batch["mask"], batch["frequency_bucket"]
+        query_ids, label, mask, frequency_buckets = (
+            batch["query_id"],
+            batch["label"],
+            batch["mask"],
+            batch["frequency_bucket"],
+        )
 
         y_predict = model.apply(
             state.params,
