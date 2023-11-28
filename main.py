@@ -6,18 +6,18 @@ import hydra
 import jax
 import optax
 import pyarrow
-pyarrow.PyExtensionType.set_auto_load(True)
 import rax
 import torch
 import wandb
-
 from datasets import load_dataset
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader
+
 from src.data import collate_fn, hash_labels, discretize, random_split, stratified_split
+from src.log import get_wandb_run_name
 from src.trainer import Trainer
 from src.util import EarlyStopping
 
@@ -68,7 +68,7 @@ def main(config: DictConfig):
     print(OmegaConf.to_yaml(config))
 
     if config.logging:
-        run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
+        run_name = get_wandb_run_name(config)
         wandb.init(
             project=config.wandb_project_name,
             entity=config.wandb_entity,
