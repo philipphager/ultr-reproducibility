@@ -60,21 +60,21 @@ class Trainer:
         val_click_loader: Optional[DataLoader],
         val_rel_loader: Optional[DataLoader],
     ) -> TrainState:
+        start_time = time.time()
         state = self._init_train_state(model, train_loader)
         best_model_state = state
 
-        start_time = time.time()
         for epoch in range(self.epochs):
-            state, epoch_loss = self._train_epoch(
+            state, train_loss = self._train_epoch(
                 model, state, train_loader, f"Epoch: {epoch} - Training"
             )
 
             val_click_df, val_rel_df = self._eval_epoch(
                 model, state, val_click_loader, val_rel_loader, f"Epoch: {epoch} - Val"
             )
-            val_click_metrics, val_rel_metrics = aggregate_metrics(
-                val_click_df
-            ), aggregate_metrics(val_rel_df)
+
+            val_click_metrics = aggregate_metrics(val_click_df)
+            val_rel_metrics = aggregate_metrics(val_rel_df)
             val_metrics = {**val_click_metrics, **val_rel_metrics}
 
             has_improved, should_stop = self.early_stopping.update(val_metrics)
@@ -83,15 +83,17 @@ class Trainer:
             if has_improved:
                 best_model_state = state
 
-                if self.checkpoint:
+                if self.save_checkpoints:
                     save_state(state, Path(os.getcwd()), "best_state")
 
             if self.log_metrics:
+                secs_per_epoch = (time.time() - start_time) / (epoch + 1)
+
                 wandb.log(
                     {
                         "Val/": val_metrics,
-                        "Train/loss": epoch_loss,
-                        "Misc/TimePerEpoch": (time.time() - start_time) / (epoch + 1),
+                        "Train/loss": train_loss,
+                        "Misc/TimePerEpoch": secs_per_epoch,
                     },
                     step=epoch,
                 )
@@ -102,24 +104,28 @@ class Trainer:
 
         return best_model_state
 
-    def test(
+    def eval(
         self,
         model: nn.Module,
         state: TrainState,
         test_click_loader: Optional[DataLoader],
         test_rel_loader: Optional[DataLoader],
-        description: str = "Testing",
+        stage: Stage = Stage.TEST,
     ) -> Tuple[DataFrame, DataFrame]:
         test_click_df, test_rel_df = self._eval_epoch(
-            model, state, test_click_loader, test_rel_loader, description
+            model,
+            state,
+            test_click_loader,
+            test_rel_loader,
+            stage,
         )
-        test_click_metrics, test_rel_metrics = aggregate_metrics(
-            test_click_df
-        ), aggregate_metrics(test_rel_df)
+        test_click_metrics = aggregate_metrics(test_click_df)
+        test_rel_metrics = aggregate_metrics(test_rel_df)
         test_metrics = {**test_click_metrics, **test_rel_metrics}
-        if self.log_metrics and description == "Testing":
+        print_metric_table(test_metrics, stage)
+
+        if self.log_metrics and stage == Stage.TEST:
             wandb.log({"Test/": test_metrics})
-        print_metric_table(test_metrics, description)
 
         return test_click_df, test_rel_df
 
@@ -140,11 +146,13 @@ class Trainer:
 
     def _train_epoch(self, model, state, loader, description):
         epoch_loss = 0
+
         for batch in tqdm(loader, desc=description):
             state, loss = self._train_step(model, state, batch)
 
             epoch_loss += loss
             self.global_step += loader.batch_size
+
         epoch_loss /= len(loader)
         return state, epoch_loss
 
@@ -153,6 +161,7 @@ class Trainer:
 
         for batch in tqdm(click_loader, desc=description):
             click_metrics.append(self._eval_click_step(model, state, batch))
+
         for batch in tqdm(rel_loader, desc=description):
             rel_metrics.append(self._eval_rel_step(model, state, batch))
 

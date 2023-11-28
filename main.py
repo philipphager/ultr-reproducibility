@@ -163,21 +163,21 @@ def main(config: DictConfig):
     test_df = trainer.eval(model, best_state, test_loader, Stage.TEST)
     test_df.to_parquet("test.parquet")
 
-    _, val_rel_df = trainer.test(
+    _, val_rel_df = trainer.eval(
         model,
         best_state,
         val_click_loader,
         val_rel_loader,
-        "Validation",
+        stage=Stage.VAL,
     )
     val_rel_df.to_parquet("val.parquet")
 
-    _, test_rel_df = trainer.test(
+    _, test_rel_df = trainer.eval(
         model,
         best_state,
         test_click_loader,
         test_rel_loader,
-        "Testing",
+        stage=Stage.TEST,
     )
     test_rel_df.to_parquet("test.parquet")
 
