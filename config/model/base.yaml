@@ -1,3 +1,4 @@
 _target_: ???
-relevance_layers: [512, 256, 128]
-relevance_dropouts: [0, 0.1, 0.1]
+relevance_dims: 32
+relevance_layers: 3
+relevance_dropout: 0.1

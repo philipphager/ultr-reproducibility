@@ -1,25 +1,24 @@
 import logging
-import time
 from functools import partial
 
 import hydra
 import jax
 import optax
 import pyarrow
-pyarrow.PyExtensionType.set_auto_load(True)
 import rax
 import torch
 import wandb
-
 from datasets import load_dataset
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader
-from src.data import collate_fn, hash_labels, discretize, random_split, stratified_split
-from src.trainer import Trainer
-from src.util import EarlyStopping
+
+from src.data import collate_fn, hash_labels, discretize, random_split
+from src.log import get_wandb_run_name
+from src.trainer import Trainer, Stage
+from src.util import EarlyStopping, aggregate_metrics
 
 logging.basicConfig(
     level="INFO",
@@ -38,7 +37,10 @@ BAIDU_DATASET = "philipphager/baidu-ultr"
 
 def load_train_data(cache_dir: str):
     train_dataset = load_dataset(
-        BAIDU_DATASET, name="clicks-1p", split="train", cache_dir=cache_dir
+        BAIDU_DATASET,
+        name="clicks-1p",
+        split="train",
+        cache_dir=cache_dir,
     )
     train_dataset.set_format("numpy")
 
@@ -56,7 +58,10 @@ def load_train_data(cache_dir: str):
 
 def load_val_data(cache_dir: str):
     val_dataset = load_dataset(
-        BAIDU_DATASET, name="annotations", split="validation", cache_dir=cache_dir
+        BAIDU_DATASET,
+        name="annotations",
+        split="validation",
+        cache_dir=cache_dir,
     )
     val_dataset.set_format("numpy")
     return val_dataset
@@ -65,9 +70,10 @@ def load_val_data(cache_dir: str):
 @hydra.main(version_base="1.2", config_path="config", config_name="config")
 def main(config: DictConfig):
     torch.manual_seed(config.random_state)
+    print(OmegaConf.to_yaml(config))
 
     if config.logging:
-        run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
+        run_name = get_wandb_run_name(config)
         wandb.init(
             project=config.wandb_project_name,
             entity=config.wandb_entity,
@@ -77,15 +83,21 @@ def main(config: DictConfig):
         )
 
     train_click_dataset = load_train_data(config.cache_dir)
-    train_click_dataset, val_click_dataset, test_click_dataset = random_split(
+    train_click_dataset, test_click_dataset = random_split(
         train_click_dataset,
         shuffle=True,
         random_state=config.random_state,
-        val_size=0.1,
-        test_size=0.1,
+        test_size=0.2,
     )
+    val_click_dataset, test_click_dataset = random_split(
+        test_click_dataset,
+        shuffle=True,
+        random_state=config.random_state,
+        test_size=0.5,
+    )
+
     val_rel_dataset = load_val_data(config.cache_dir)
-    val_rel_dataset, test_rel_dataset = stratified_split(
+    val_rel_dataset, test_rel_dataset = random_split(
         val_rel_dataset,
         shuffle=True,
         random_state=config.random_state,
@@ -105,15 +117,17 @@ def main(config: DictConfig):
         collate_fn=collate_fn,
         batch_size=config.batch_size,
         num_workers=config.num_workers,
-    )
-    test_click_loader = DataLoader(
-        test_click_dataset,
-        collate_fn=collate_fn,
-        batch_size=config.batch_size,
-        num_workers=0,
+        pin_memory=True,
     )
     val_rel_loader = DataLoader(
         val_rel_dataset,
+        collate_fn=collate_fn,
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        pin_memory=True,
+    )
+    test_click_loader = DataLoader(
+        test_click_dataset,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
     )
@@ -121,7 +135,6 @@ def main(config: DictConfig):
         test_rel_dataset,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
-        num_workers=0,
     )
 
     model = instantiate(config.model)
@@ -140,38 +153,44 @@ def main(config: DictConfig):
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
         epochs=config.max_epochs,
-        early_stopping=EarlyStopping(metric=config.es_metric, patience=config.es_patience),
+        early_stopping=EarlyStopping(
+            metric=config.es_metric,
+            patience=config.es_patience,
+        ),
+        save_checkpoints=config.checkpoints,
+        log_metrics=config.logging,
     )
     best_state = trainer.train(
         model,
         train_loader,
         val_click_loader,
         val_rel_loader,
-        log_metrics=config.logging,
     )
 
-    _, val_rel_df = trainer.test(
+    _, val_rel_df = trainer.eval(
         model,
         best_state,
         val_click_loader,
         val_rel_loader,
-        "Validation",
-        log_metrics=config.logging,
+        stage=Stage.VAL,
     )
     val_rel_df.to_parquet("val.parquet")
 
-    _, test_rel_df = trainer.test(
+    _, test_rel_df = trainer.eval(
         model,
         best_state,
         test_click_loader,
         test_rel_loader,
-        "Testing",
-        log_metrics=config.logging,
+        stage=Stage.TEST,
     )
     test_rel_df.to_parquet("test.parquet")
 
     if config.logging:
         wandb.finish()
+
+    # Return best val metric for hyperparameter tuning using Optuna
+    best_val_metrics = aggregate_metrics(val_rel_df)
+    return best_val_metrics[config.es_metric]
 
 
 if __name__ == "__main__":

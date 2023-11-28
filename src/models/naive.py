@@ -1,4 +1,4 @@
-from typing import Union, Tuple, List
+from typing import Tuple
 
 from flax import linen as nn
 from jax import Array
@@ -7,13 +7,15 @@ from src.models.base import Tower
 
 
 class NaiveModel(nn.Module):
-    relevance_layers: List[int]
-    relevance_dropouts: List[float]
+    relevance_dims: int
+    relevance_layers: int
+    relevance_dropout: float
 
     def setup(self) -> None:
         self.relevance_model = Tower(
+            dims=self.relevance_dims,
             layers=self.relevance_layers,
-            dropouts=self.relevance_dropouts,
+            dropout=self.relevance_dropout,
         )
 
     def __call__(self, batch, training: bool = False) -> Tuple[Array, Array, None]:

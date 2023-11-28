@@ -1,4 +1,4 @@
-from typing import Union, Tuple, List
+from typing import Union, Tuple
 
 from flax import linen as nn
 from jax import Array
@@ -13,20 +13,24 @@ class PositionBasedModel(nn.Module):
     P(C = 1 | d, q, k) = P(E = 1 | k) x P(R = 1 | d, q)
     """
 
-    bias_layers: List[int]
-    bias_dropouts: List[float]
-    relevance_layers: List[int]
-    relevance_dropouts: List[float]
+    bias_dims: int
+    bias_layers: int
+    bias_dropout: float
+    relevance_dims: int
+    relevance_layers: int
+    relevance_dropout: float
     tower_combination: TowerCombination
 
     def setup(self) -> None:
         self.relevance_model = Tower(
+            dims=self.relevance_dims,
             layers=self.relevance_layers,
-            dropouts=self.relevance_dropouts,
+            dropout=self.relevance_dropout,
         )
         self.bias_model = BiasTower(
+            dims=self.bias_dims,
             layers=self.bias_layers,
-            dropouts=self.bias_dropouts,
+            dropout=self.bias_dropout,
             embeddings={
                 "position": nn.Embed(num_embeddings=50, features=8),
             },
@@ -34,7 +38,7 @@ class PositionBasedModel(nn.Module):
 
     def __call__(
         self, batch, training: bool = False
-    ) -> Tuple[Array | Tuple[Array, Array], Array, Array]:
+    ) -> Tuple[Union[Array, Tuple[Array, Array]], Array, Array]:
         relevance = self.predict_relevance(batch, training)
         examination = self.predict_examination(batch, training)
         return combine_towers(examination, relevance, self.tower_combination), relevance, examination
