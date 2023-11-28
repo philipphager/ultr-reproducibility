@@ -51,7 +51,6 @@ class Trainer:
         self.early_stopping = early_stopping
         self.save_checkpoints = save_checkpoints
         self.log_metrics = log_metrics
-        self.global_step = 0
 
     def train(
         self,
@@ -149,9 +148,7 @@ class Trainer:
 
         for batch in tqdm(loader, desc=description):
             state, loss = self._train_step(model, state, batch)
-
             epoch_loss += loss
-            self.global_step += loader.batch_size
 
         epoch_loss /= len(loader)
         return state, epoch_loss
@@ -178,8 +175,8 @@ class Trainer:
                 training=True,
                 rngs={"dropout": dropout_key},
             )
-            loss = self.criterion(y_predict, batch["click"], where=batch["mask"])
-            return loss
+
+            return self.criterion(y_predict, batch["click"], where=batch["mask"])
 
         loss, grads = jax.value_and_grad(loss_fn)(state.params)
         state = state.apply_gradients(grads=grads)
@@ -204,8 +201,12 @@ class Trainer:
 
         for name, metric_fn in self.metric_fns.items():
             results[f"BC_{name}"] = metric_fn(
-                rel_predict, 1 / batch["position"], where=batch["mask"], reduce_fn=None
+                rel_predict,
+                1 / batch["position"],
+                where=batch["mask"],
+                reduce_fn=None,
             )
+
         return results
 
     @partial(jit, static_argnums=(0, 1))
