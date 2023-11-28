@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - model: two-towers
-  - loss: pointwise
+  - loss: listwise
   - user_const
 
 random_state: 381
