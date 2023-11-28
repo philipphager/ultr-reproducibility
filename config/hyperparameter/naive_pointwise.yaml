@@ -1,9 +1,11 @@
 # @package _global_
 
-trainer:
-  learning_rate: 0.009560730093223512
+# File to add best hyperparameters per model-loss combination:
 
-model:
-  relevance_dims: 512
-  relevance_layers: 1
-  relevance_dropout: 0.5
+#trainer:
+#  learning_rate: 0.009560730093223512
+#
+#model:
+#  relevance_dims: 512
+#  relevance_layers: 1
+#  relevance_dropout: 0.5
