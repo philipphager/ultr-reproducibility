@@ -93,7 +93,7 @@ def main(config: DictConfig):
         test_size=0.5,
     )
 
-    val_rel_dataset = load_val_data(config.cache_dir)
+    val_rel_dataset = load_val_data(config)
     val_rel_dataset, test_rel_dataset = random_split(
         val_rel_dataset,
         shuffle=True,
