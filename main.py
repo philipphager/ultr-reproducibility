@@ -32,15 +32,12 @@ logging.basicConfig(
     ],
 )
 
-BAIDU_DATASET = "philipphager/baidu-ultr_baidu-base-12L"
-
-
-def load_train_data(cache_dir: str):
+def load_train_data(config: DictConfig):
     train_dataset = load_dataset(
-        BAIDU_DATASET,
+        config.data.name,
         name="clicks",
         split="train",
-        cache_dir=cache_dir,
+        cache_dir=config.cache_dir,
     )
     train_dataset.set_format("numpy")
 
@@ -56,12 +53,12 @@ def load_train_data(cache_dir: str):
     return train_dataset.map(encode_bias, num_proc=1)
 
 
-def load_val_data(cache_dir: str):
+def load_val_data(config: DictConfig):
     val_dataset = load_dataset(
-        BAIDU_DATASET,
+        config.data.name,
         name="annotations",
         split="validation",
-        cache_dir=cache_dir,
+        cache_dir=config.cache_dir,
     )
     val_dataset.set_format("numpy")
     return val_dataset
@@ -82,7 +79,7 @@ def main(config: DictConfig):
             save_code=True,
         )
 
-    train_click_dataset = load_train_data(config.cache_dir)
+    train_click_dataset = load_train_data(config)
     train_click_dataset, test_click_dataset = random_split(
         train_click_dataset,
         shuffle=True,
