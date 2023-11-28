@@ -82,7 +82,7 @@ class TwoTowerModel(nn.Module):
 
     def __call__(
         self, batch, training: bool = False
-    ) -> Tuple[Array | Tuple[Array, Array], Array, Array]:
+    ) -> Tuple[Union[Array, Tuple[Array, Array]], Array, Array]:
         relevance = self.predict_relevance(batch, training)
         examination = self.predict_examination(batch, training)
         return combine_towers(examination, relevance, self.tower_combination), relevance, examination
