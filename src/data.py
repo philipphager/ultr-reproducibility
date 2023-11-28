@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import mmh3
 import numpy as np
@@ -47,12 +47,13 @@ def collate_fn(samples: List[Dict[str, np.ndarray]]):
         for column, features in batch.items()
     }
 
-def stratified_split(
+
+def random_split(
     dataset: Dataset,
     shuffle: bool,
     random_state: int,
     test_size: float,
-    stratify: str,
+    stratify: Optional[str] = None,
 ):
     """
     Stratify a train/test split of a Huggingface dataset.
@@ -62,32 +63,12 @@ def stratified_split(
     idx = np.arange(len(dataset))
     train_idx, test_idx = train_test_split(
         idx,
-        stratify=dataset[stratify],
+        stratify=dataset[stratify] if stratify else None,
         shuffle=shuffle,
         test_size=test_size,
         random_state=random_state,
     )
     return dataset.select(train_idx), dataset.select(test_idx)
-
-def random_split(
-    dataset: Dataset,
-    shuffle: bool,
-    random_state: int,
-    val_size: float,
-    test_size: float,
-):
-    """
-    Random splitting of a dataset.
-    """
-    idx = np.arange(len(dataset))
-    train_idx, test_idx = train_test_split(
-        idx,
-        shuffle=shuffle,
-        test_size=val_size + test_size,
-        random_state=random_state,
-    )
-    val_size = int(val_size * len(dataset))
-    return dataset.select(train_idx), dataset.select(test_idx[:val_size]), dataset.select(test_idx[val_size:])
 
 
 def pad(x: np.ndarray, max_n: int):

@@ -15,7 +15,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader
 
-from src.data import collate_fn, hash_labels, discretize, random_split, stratified_split
+from src.data import collate_fn, hash_labels, discretize, random_split
 from src.log import get_wandb_run_name
 from src.trainer import Trainer, Stage
 from src.util import EarlyStopping, aggregate_metrics
@@ -83,15 +83,21 @@ def main(config: DictConfig):
         )
 
     train_click_dataset = load_train_data(config.cache_dir)
-    train_click_dataset, val_click_dataset, test_click_dataset = random_split(
+    train_click_dataset, test_click_dataset = random_split(
         train_click_dataset,
         shuffle=True,
         random_state=config.random_state,
-        val_size=0.1,
-        test_size=0.1,
+        test_size=0.2,
     )
+    val_click_dataset, test_click_dataset = random_split(
+        train_click_dataset,
+        shuffle=True,
+        random_state=config.random_state,
+        test_size=0.5,
+    )
+
     val_rel_dataset = load_val_data(config.cache_dir)
-    val_rel_dataset, test_rel_dataset = stratified_split(
+    val_rel_dataset, test_rel_dataset = random_split(
         val_rel_dataset,
         shuffle=True,
         random_state=config.random_state,
