@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 from src.data import collate_fn, hash_labels, discretize, random_split, stratified_split
 from src.log import get_wandb_run_name
 from src.trainer import Trainer, Stage
-from src.util import EarlyStopping
+from src.util import EarlyStopping, aggregate_metrics
 
 logging.basicConfig(
     level="INFO",
@@ -183,7 +183,7 @@ def main(config: DictConfig):
         wandb.finish()
 
     # Return best val metric for hyperparameter tuning using Optuna
-    best_val_metrics = aggregate_metrics(val_df)
+    best_val_metrics = aggregate_metrics(val_rel_df)
     return best_val_metrics[config.trainer.val_metric]
 
 
