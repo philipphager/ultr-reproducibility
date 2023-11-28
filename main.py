@@ -1,5 +1,4 @@
 import logging
-import time
 from functools import partial
 
 import hydra
@@ -18,7 +17,7 @@ from torch.utils.data import DataLoader
 
 from src.data import collate_fn, hash_labels, discretize, random_split, stratified_split
 from src.log import get_wandb_run_name
-from src.trainer import Trainer
+from src.trainer import Trainer, Stage
 from src.util import EarlyStopping
 
 logging.basicConfig(
@@ -154,14 +153,7 @@ def main(config: DictConfig):
         train_loader,
         val_click_loader,
         val_rel_loader,
-        log_metrics=config.logging,
     )
-
-    val_df = trainer.eval(model, best_state, val_loader, Stage.VAL)
-    val_df.to_parquet("val.parquet")
-
-    test_df = trainer.eval(model, best_state, test_loader, Stage.TEST)
-    test_df.to_parquet("test.parquet")
 
     _, val_rel_df = trainer.eval(
         model,
@@ -183,8 +175,6 @@ def main(config: DictConfig):
 
     if config.logging:
         wandb.finish()
-
-    wandb.finish()
 
     # Return best val metric for hyperparameter tuning using Optuna
     best_val_metrics = aggregate_metrics(val_df)
