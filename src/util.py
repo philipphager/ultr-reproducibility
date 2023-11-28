@@ -1,14 +1,12 @@
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
+import jax
 import numpy as np
 import pandas as pd
 from flax.training import early_stopping
-import jax
 from jax import Array
 from orbax.checkpoint import PyTreeCheckpointer
-
-from src.trainer import TrainState
 
 
 class EarlyStopping:
@@ -63,6 +61,6 @@ def dict_to_numpy(_dict: Dict[str, Array]) -> Dict[str, np.ndarray]:
     return {k: jax.device_get(v) for k, v in _dict.items()}
 
 
-def save_state(state: TrainState, directory: Path, name: str = "best_state"):
+def save_state(state, directory: Path, name: str = "best_state"):
     checkpointer = PyTreeCheckpointer()
     checkpointer.save(directory.resolve() / name, state, force=True)
