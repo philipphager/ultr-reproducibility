@@ -47,7 +47,6 @@ def collate_fn(samples: List[Dict[str, np.ndarray]]):
         for column, features in batch.items()
     }
 
-
 def stratified_split(
     dataset: Dataset,
     shuffle: bool,
@@ -69,6 +68,26 @@ def stratified_split(
         random_state=random_state,
     )
     return dataset.select(train_idx), dataset.select(test_idx)
+
+def random_split(
+    dataset: Dataset,
+    shuffle: bool,
+    random_state: int,
+    val_size: float,
+    test_size: float,
+):
+    """
+    Random splitting of a dataset.
+    """
+    idx = np.arange(len(dataset))
+    train_idx, test_idx = train_test_split(
+        idx,
+        shuffle=shuffle,
+        test_size=val_size + test_size,
+        random_state=random_state,
+    )
+    val_size = int(val_size * len(dataset))
+    return dataset.select(train_idx), dataset.select(test_idx[:val_size]), dataset.select(test_idx[val_size:])
 
 
 def pad(x: np.ndarray, max_n: int):

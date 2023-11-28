@@ -38,10 +38,10 @@ class PositionBasedModel(nn.Module):
 
     def __call__(
         self, batch, training: bool = False
-    ) -> Union[Array, Tuple[Array, Array]]:
+    ) -> Tuple[Array | Tuple[Array, Array], Array, Array]:
         relevance = self.predict_relevance(batch, training)
         examination = self.predict_examination(batch, training)
-        return combine_towers(examination, relevance, self.tower_combination)
+        return combine_towers(examination, relevance, self.tower_combination), relevance, examination
 
     def predict_relevance(self, batch, training: bool = False) -> Array:
         x = batch["query_document_embedding"]

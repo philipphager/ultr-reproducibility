@@ -9,6 +9,7 @@ from app.components import sidebar
 from app.utils.const import METRICS, MODELS, LOSSES
 from app.utils.file import parse_model_name, has_metrics
 
+st.set_page_config(layout="wide")
 sidebar.draw()
 
 
@@ -35,33 +36,39 @@ def plot_metrics(df):
     color_by = st.sidebar.selectbox("Color by", ["model", "loss"])
     color_domain = MODELS if color_by == "model" else LOSSES
 
+
+    frequency = st.sidebar.toggle("Group per query frequency", value=False)
+
+
     # Find global sorting order
-    top_df = df.groupby("name")[metric].mean().reset_index()
-    top_df = top_df.sort_values([metric], ascending=False)
-    sort = list(top_df.name)
+    # top_df = df.groupby(["name"])[metric].mean().reset_index()  
+    # top_df = df.sort_values([metric], ascending=False)
+    # sort = list(top_df.name)  
 
     bars = (
-        alt.Chart(df, width=700, height=400)
+        alt.Chart(df, width=100 + 600*(1-frequency), height=400 - 100*frequency)
         .mark_bar()
         .encode(
-            x=alt.X("name:N").axis(labelAngle=-45, labelOverlap=False).sort(sort),
+            x=alt.X("name:N").axis(labelAngle=-45, labelOverlap=False),
             y=alt.Y(f"mean({metric})").title(metric),
             color=alt.Color(color_by).title(color_by).scale(domain=color_domain),
         )
     )
 
     error = (
-        alt.Chart(df, width=700, height=400)
+        alt.Chart(df, width=100 + 600*(1-frequency), height=400 - 100*frequency)
         .mark_errorbar(extent="ci")
         .encode(
-            x=alt.X("name:N").sort(sort),
+            x=alt.X("name:N"),
             y=alt.Y(f"{metric}").title(metric),
             strokeWidth=alt.value(2),
         )
     )
 
-    return bars + error
-
+    if frequency:
+        return alt.layer(bars, error, data=df).facet(column='frequency_bucket')
+    else:
+        return bars + error
 
 model_directory = st.session_state["model_directory"]
 directories = list(filter(has_metrics, map(Path, model_directory.glob("*/"))))

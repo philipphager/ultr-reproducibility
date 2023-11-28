@@ -1,9 +1,10 @@
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
 from flax.training import early_stopping
+import jax
 from jax import Array
 from orbax.checkpoint import PyTreeCheckpointer
 
@@ -47,19 +48,19 @@ def collect_metrics(results: List[Dict[str, Array]]) -> pd.DataFrame:
     ]
     """
     # Convert Jax Arrays to numpy:
-    results = [dict_to_numpy(r) for r in results]
+    np_results = [dict_to_numpy(r) for r in results]
     # Unroll values in batches into individual rows:
-    df = pd.DataFrame(results)
+    df = pd.DataFrame(np_results)
     return df.explode(column=list(df.columns)).reset_index(drop=True)
 
 
-def aggregate_metrics(metric_df: pd.DataFrame, ignore_columns=["query_id"]) -> Dict:
-    metric_df = metric_df.drop(columns=ignore_columns)
-    return metric_df.mean(axis=0).to_dict()
+def aggregate_metrics(df: pd.DataFrame, ignore_columns=["query_id", "frequency_bucket"]) -> Dict[str, float]:
+    df = df.drop(columns=ignore_columns, errors = "ignore")
+    return df.mean(axis=0).to_dict()
 
 
 def dict_to_numpy(_dict: Dict[str, Array]) -> Dict[str, np.ndarray]:
-    return {k: np.array(v) for k, v in _dict.items()}
+    return {k: jax.device_get(v) for k, v in _dict.items()}
 
 
 def save_state(state: TrainState, directory: Path, name: str = "best_state"):

@@ -1,0 +1,5 @@
+_target_: src.loss.behavior_cloning
+_partial_: True
+loss_fn:
+  _target_: rax.pairwise_logistic_loss
+  _partial_: True

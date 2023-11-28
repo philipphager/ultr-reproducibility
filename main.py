@@ -1,24 +1,25 @@
 import logging
+import time
 from functools import partial
 
 import hydra
 import jax
 import optax
 import pyarrow
+pyarrow.PyExtensionType.set_auto_load(True)
 import rax
 import torch
+import wandb
+
 from datasets import load_dataset
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader
-import wandb
-import time
-
-from src.data import collate_fn, hash_labels, discretize, stratified_split
-from src.trainer import Trainer, Stage
-from src.util import EarlyStopping, aggregate_metrics
+from src.data import collate_fn, hash_labels, discretize, random_split, stratified_split
+from src.trainer import Trainer
+from src.util import EarlyStopping
 
 logging.basicConfig(
     level="INFO",
@@ -35,7 +36,7 @@ logging.basicConfig(
 BAIDU_DATASET = "philipphager/baidu-ultr"
 
 
-def load_train_data(cache_dir: str, num_workers: int):
+def load_train_data(cache_dir: str):
     train_dataset = load_dataset(
         BAIDU_DATASET, name="clicks-1p", split="train", cache_dir=cache_dir
     )
@@ -50,7 +51,7 @@ def load_train_data(cache_dir: str, num_workers: int):
         )
         return batch
 
-    return train_dataset.map(encode_bias, num_proc=num_workers)
+    return train_dataset.map(encode_bias, num_proc=1)
 
 
 def load_val_data(cache_dir: str):
@@ -66,51 +67,71 @@ def main(config: DictConfig):
     torch.manual_seed(config.random_state)
     print(OmegaConf.to_yaml(config))
 
-    run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
-    wandb.init(
-        project=config.wandb_project_name,
-        entity=config.wandb_entity,
-        config=vars(config)["_content"],
-        name=run_name,
-    )
+    if config.logging:
+        run_name = f"{config.model._target_.split('.')[-1]}__{config.loss._target_.split('.')[-1]}__{config.random_state}__{int(time.time())}"
+        wandb.init(
+            project=config.wandb_project_name,
+            entity=config.wandb_entity,
+            name=run_name,
+            config=OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
+            save_code=True,
+        )
 
-    train_dataset = load_train_data(config.cache_dir, config.num_workers)
-    val_dataset = load_val_data(config.cache_dir)
-    val_dataset, test_dataset = stratified_split(
-        val_dataset,
+    train_click_dataset = load_train_data(config.cache_dir)
+    train_click_dataset, val_click_dataset, test_click_dataset = random_split(
+        train_click_dataset,
+        shuffle=True,
+        random_state=config.random_state,
+        val_size=0.1,
+        test_size=0.1,
+    )
+    val_rel_dataset = load_val_data(config.cache_dir)
+    val_rel_dataset, test_rel_dataset = stratified_split(
+        val_rel_dataset,
         shuffle=True,
         random_state=config.random_state,
         test_size=0.5,
         stratify="frequency_bucket",
     )
 
-    trainer_loader = DataLoader(
-        train_dataset,
+    train_loader = DataLoader(
+        train_click_dataset,
         collate_fn=collate_fn,
-        batch_size=256,
+        batch_size=config.batch_size,
         num_workers=config.num_workers,
         pin_memory=True,
     )
-    val_loader = DataLoader(
-        val_dataset,
+    val_click_loader = DataLoader(
+        val_click_dataset,
         collate_fn=collate_fn,
-        batch_size=256,
+        batch_size=config.batch_size,
         num_workers=config.num_workers,
         pin_memory=True,
     )
-    test_loader = DataLoader(
-        test_dataset,
+    test_click_loader = DataLoader(
+        test_click_dataset,
         collate_fn=collate_fn,
-        batch_size=256,
-        num_workers=1,
+        batch_size=config.batch_size,
+        num_workers=0,
+    )
+    val_rel_loader = DataLoader(
+        val_rel_dataset,
+        collate_fn=collate_fn,
+        batch_size=config.batch_size,
+    )
+    test_rel_loader = DataLoader(
+        test_rel_dataset,
+        collate_fn=collate_fn,
+        batch_size=config.batch_size,
+        num_workers=0,
     )
 
     model = instantiate(config.model)
     criterion = instantiate(config.loss)
 
     trainer = Trainer(
-        random_state=config.random_state,
-        optimizer=optax.adam(learning_rate=config.trainer.learning_rate),
+        random_state=0,
+        optimizer=optax.adam(learning_rate=config.lr),
         criterion=criterion,
         metric_fns={
             "ndcg@10": partial(rax.ndcg_metric, topn=10),
@@ -120,20 +141,45 @@ def main(config: DictConfig):
             "dcg@05": partial(rax.dcg_metric, topn=5),
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
-        epochs=config.trainer.epochs,
-        early_stopping=EarlyStopping(
-            metric=config.trainer.val_metric,
-            patience=config.trainer.patience,
-        ),
-        checkpoint=config.trainer.checkpoint,
+        epochs=config.max_epochs,
+        early_stopping=EarlyStopping(metric=config.es_metric, patience=config.es_patience),
     )
-    best_state = trainer.train(model, trainer_loader, val_loader)
+    best_state = trainer.train(
+        model,
+        train_loader,
+        val_click_loader,
+        val_rel_loader,
+        log_metrics=config.logging,
+    )
 
     val_df = trainer.eval(model, best_state, val_loader, Stage.VAL)
     val_df.to_parquet("val.parquet")
 
     test_df = trainer.eval(model, best_state, test_loader, Stage.TEST)
     test_df.to_parquet("test.parquet")
+
+    _, val_rel_df = trainer.test(
+        model,
+        best_state,
+        val_click_loader,
+        val_rel_loader,
+        "Validation",
+        log_metrics=config.logging,
+    )
+    val_rel_df.to_parquet("val.parquet")
+
+    _, test_rel_df = trainer.test(
+        model,
+        best_state,
+        test_click_loader,
+        test_rel_loader,
+        "Testing",
+        log_metrics=config.logging,
+    )
+    test_rel_df.to_parquet("test.parquet")
+
+    if config.logging:
+        wandb.finish()
 
     wandb.finish()
 
