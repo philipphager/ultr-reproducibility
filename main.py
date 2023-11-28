@@ -184,7 +184,7 @@ def main(config: DictConfig):
 
     # Return best val metric for hyperparameter tuning using Optuna
     best_val_metrics = aggregate_metrics(val_rel_df)
-    return best_val_metrics[config.trainer.val_metric]
+    return best_val_metrics[config.es_metric]
 
 
 if __name__ == "__main__":
