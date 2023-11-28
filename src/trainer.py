@@ -216,13 +216,6 @@ class Trainer:
 
     @partial(jit, static_argnums=(0, 1))
     def _eval_rel_step(self, model, state, batch):
-        query_ids, label, mask, frequency_buckets = (
-            batch["query_id"],
-            batch["label"],
-            batch["mask"],
-            batch["frequency_bucket"],
-        )
-
         y_predict = model.apply(
             state.params,
             batch,
@@ -231,9 +224,17 @@ class Trainer:
             method=model.predict_relevance,
         )
 
-        results = {"query_id": query_ids, "frequency_bucket": frequency_buckets}
+        results = {
+            "query_id": batch["query_id"],
+            "frequency_bucket": batch["frequency_bucket"],
+        }
 
         for name, metric_fn in self.metric_fns.items():
-            results[name] = metric_fn(y_predict, label, where=mask, reduce_fn=None)
+            results[name] = metric_fn(
+                y_predict,
+                batch["label"],
+                where=batch["mask"],
+                reduce_fn=None,
+            )
 
         return results
