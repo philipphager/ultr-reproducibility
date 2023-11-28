@@ -11,13 +11,6 @@ max_epochs: 25
 es_metric: dcg@10
 es_patience: 4
 
-trainer:
-  learning_rate: 0.0001
-  epochs: 50
-  patience: 3
-  val_metric: ndcg@10
-  checkpoint: True
-
 hydra:
   job:
     chdir: True
