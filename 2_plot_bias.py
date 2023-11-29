@@ -12,6 +12,7 @@ from hydra.utils import instantiate
 from app.components import sidebar
 from app.utils.file import parse_model_name, has_checkpoint
 from app.utils.model import load_state
+from app.utils.const import METRICS, MODELS, LOSSES
 
 
 def get_synthetic_batch():
@@ -64,6 +65,8 @@ def get_examination(model, state, batch, normalize):
 
 
 def plot_position_bias(df):
+    models = st.sidebar.multiselect("Models", MODELS, default=df.model.unique())
+    df = df[df.model.isin(models)]
     return (
         alt.Chart(df, width=800)
         .mark_line(point=True)

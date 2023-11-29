@@ -14,8 +14,8 @@ def get_model_directory() -> Path:
     with open('config/user_const.yaml', 'r') as file:
         dirpath = yaml.safe_load(file)["run_dir"]
 
-    model_directory = st.sidebar.text_input("Model directory", dirpath)
-    return Path(model_directory)
+    model_directory = st.sidebar.text_input("Model directory", "")
+    return Path(dirpath + model_directory)
 
 
 def draw():
