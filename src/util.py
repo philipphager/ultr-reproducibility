@@ -4,9 +4,8 @@ from typing import Dict, List
 import jax
 import numpy as np
 import pandas as pd
-from flax.training import early_stopping
+from flax.training import early_stopping, checkpoints
 from jax import Array
-from orbax.checkpoint import PyTreeCheckpointer
 
 
 class EarlyStopping:
@@ -62,5 +61,4 @@ def dict_to_numpy(_dict: Dict[str, Array]) -> Dict[str, np.ndarray]:
 
 
 def save_state(state, directory: Path, name: str = "best_state"):
-    checkpointer = PyTreeCheckpointer()
-    checkpointer.save(directory.resolve() / name, state, force=True)
+    checkpoints.save_checkpoint(directory / name, state, step=0, overwrite=True)

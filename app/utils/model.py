@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from orbax.checkpoint import PyTreeCheckpointer
+from flax.training import checkpoints
 
 
 def load_state(path: Path, name: str = "best_state"):
-    checkpointer = PyTreeCheckpointer()
-    return checkpointer.restore(path.resolve() / name)
+    return checkpoints.restore_checkpoint(path.resolve() / name, target=None)
