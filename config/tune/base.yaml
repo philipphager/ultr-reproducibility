@@ -1,18 +1,29 @@
 # @package _global_
 
 defaults:
-  - override /hydra/sweeper: optuna
-  - override /hydra/sweeper/sampler: tpe
+  - cluster/ilps
+  - override /hydra/sweeper: SMAC
 
 trainer:
-  checkpoints: False # Stop storing model checkpoints during hyperparam search
+  checkpoints: False # Stop storing model checkpoints during hyperparameter search
 
 hydra:
   sweeper:
-    study_name: ???
-    direction: maximize
-    n_trials: 100
-    n_jobs: "${num_jobs}"
+    smac_class: smac.facade.blackbox_facade.BlackBoxFacade
+    scenario:
+      seed: 42
+      n_trials: 50
+      deterministic: true
+      n_workers: "${num_jobs}"
+    smac_kwargs:
+      dask_client:
+        _target_: dask.distributed.Client
+        address: ${create_cluster:${cluster},${hydra.sweeper.scenario.n_workers}}
+      logging_level: 20 # INFO: 20, DEBUG: 10
+    search_space: ???
+
+  # Use tuned parameters as directory name. Some parameters are ignored in the name
+  # to not exceed the max name length of a file.
   sweep:
     dir: multirun/tune
     subdir: "${hydra.job.override_dirname}-${hydra.job.num}"

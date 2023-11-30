@@ -6,9 +6,27 @@ defaults:
 
 hydra:
   sweeper:
-    study_name: naive
-    params:
-      trainer.learning_rate: tag(log, interval(0.00001, 0.1))
-      model.relevance_dims: choice(16, 32, 64, 128, 256, 512, 1024)
-      model.relevance_layers: range(1, 6)
-      model.relevance_dropout: range(0.0, 0.5, step=0.1)
+    search_space:
+      hyperparameters:
+        trainer.learning_rate:
+          type: uniform_float
+          lower: 0.00001
+          upper: 0.1
+          log: True
+          default_value: 0.001
+        model.relevance_dims:
+          type: uniform_int
+          lower: 16
+          upper: 1024
+          log: True
+          default_value: 64
+        model.relevance_layers:
+          type: uniform_int
+          lower: 1
+          upper: 6
+          default_value: 3
+        model.relevance_dropout:
+          type: uniform_float
+          lower: 0.0
+          upper: 0.5
+          default_value: 0.1

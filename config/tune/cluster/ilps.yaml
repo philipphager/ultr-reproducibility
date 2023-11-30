@@ -1,0 +1,10 @@
+# @package _global_
+cluster:
+  _target_: dask_jobqueue.SLURMCluster
+  queue: gpu
+  cores: 8
+  memory: 32GB
+  walltime: 12:00:00
+  processes: 1
+  worker_extra_args: ["--gres gpu:pascal:1"]
+  log_directory: tmp/smac_dask_slurm
