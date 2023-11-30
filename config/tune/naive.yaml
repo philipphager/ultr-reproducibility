@@ -8,7 +8,7 @@ hydra:
   sweeper:
     search_space:
       hyperparameters:
-        trainer.learning_rate:
+        lr:
           type: uniform_float
           lower: 0.00001
           upper: 0.1
