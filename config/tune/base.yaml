@@ -5,7 +5,8 @@ defaults:
   - override /hydra/sweeper: SMAC
 
 trainer:
-  checkpoints: False # Stop storing model checkpoints during hyperparameter search
+  checkpoints: False
+  logging: False
 
 hydra:
   sweeper:
