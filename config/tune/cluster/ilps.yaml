@@ -2,9 +2,11 @@
 cluster:
   _target_: dask_jobqueue.SLURMCluster
   queue: gpu
-  cores: 8
   memory: 32GB
-  walltime: 12:00:00
+  cores: 8
+  walltime: 2:00:00
   processes: 1
-  worker_extra_args: ["--gres gpu:pascal:1"]
+  nanny: False
+  n_workers: ${hydra.sweeper.scenario.n_workers}
+  job_extra_directives: ['--gres gpu:pascal:1']
   log_directory: tmp/smac_dask_slurm
