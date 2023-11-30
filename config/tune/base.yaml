@@ -20,7 +20,6 @@ hydra:
         _target_: dask.distributed.Client
         address: ${create_cluster:${cluster},${hydra.sweeper.scenario.n_workers}}
       logging_level: 20 # INFO: 20, DEBUG: 10
-    search_space: ???
 
   # Use tuned parameters as directory name. Some parameters are ignored in the name
   # to not exceed the max name length of a file.
