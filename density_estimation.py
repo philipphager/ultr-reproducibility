@@ -12,6 +12,8 @@ from datasets import load_dataset
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 import time
+from csv import writer
+
 
 from src.data import random_split
 
@@ -94,7 +96,8 @@ def main(config: DictConfig):
 
     start_time = time.time()
     kde = TreeKDE(kernel=config.kde_kernel, bw=config.kde_bw).fit(qdoc_train)
-    print(f"Fitted KDE ({time.time() - start_time:.3f}s)")
+    fitting_duration = time.time() - start_time
+    print(f"Fitted KDE ({fitting_duration:.3f}s)")
 
     start_time = time.time()
     likelihood_train = kde.evaluate(qdoc_train)
@@ -103,7 +106,8 @@ def main(config: DictConfig):
     mll_train = np.log(likelihood_train).mean()
     mll_val = np.log(likelihood_val).mean()
     mll_test = np.log(likelihood_test).mean()
-    print(f"KDE evaluation on sessions ({time.time() - start_time:.3f}s)")
+    eval_duration = time.time() - start_time
+    print(f"KDE evaluation on sessions ({eval_duration:.3f}s)")
     print(f"Log-likelihood: \n train: {mll_train:.3f}, val: {mll_val:.3f}, test: {mll_test:.3f}")
 
     start_time = time.time()
@@ -113,6 +117,13 @@ def main(config: DictConfig):
     mll_test_rel = np.log(likelihood_test_rel).mean()
     print(f"KDE evaluation on annotated queries ({time.time() - start_time:.3f}s)")
     print(f"Log-likelihood : \n val: {mll_val_rel:.3f}, test: {mll_test_rel:.3f}")
+
+    if config.logging:
+        with open(config.cache_dir + 'tencent_KDE_gridsearch.csv', 'a') as f: 
+            csvwriter = writer(f)
+            csvwriter.writerow([config.kde_kernel, config.kde_bw, config.pca_dim, fitting_duration, 
+                                    eval_duration, mll_train, mll_val, mll_test, mll_val_rel, mll_test_rel])
+            f.close()
 
     return mll_train, mll_val, mll_test, mll_val_rel, mll_test_rel
 
