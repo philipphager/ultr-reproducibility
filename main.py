@@ -65,39 +65,39 @@ def load_val_data(config: DictConfig):
 
 
 @hydra.main(version_base="1.2", config_path="config", config_name="config")
-def main(config: DictConfig):
-    torch.manual_seed(config.random_state)
-    print(OmegaConf.to_yaml(config))
+def main(cfg: DictConfig):
+    torch.manual_seed(cfg.random_state)
+    print(OmegaConf.to_yaml(cfg))
 
-    if config.logging:
-        run_name = get_wandb_run_name(config)
+    if cfg.logging:
+        run_name = get_wandb_run_name(cfg)
         wandb.init(
-            project=config.wandb_project_name,
-            entity=config.wandb_entity,
+            project=cfg.wandb_project_name,
+            entity=cfg.wandb_entity,
             name=run_name,
-            config=OmegaConf.to_container(config, resolve=True, throw_on_missing=True),
+            config=OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True),
             save_code=True,
         )
 
-    train_click_dataset = load_train_data(config)
+    train_click_dataset = load_train_data(cfg)
     train_click_dataset, test_click_dataset = random_split(
         train_click_dataset,
         shuffle=True,
-        random_state=config.random_state,
+        random_state=cfg.random_state,
         test_size=0.2,
     )
     val_click_dataset, test_click_dataset = random_split(
         test_click_dataset,
         shuffle=True,
-        random_state=config.random_state,
+        random_state=cfg.random_state,
         test_size=0.5,
     )
 
-    val_rel_dataset = load_val_data(config)
+    val_rel_dataset = load_val_data(cfg)
     val_rel_dataset, test_rel_dataset = random_split(
         val_rel_dataset,
         shuffle=True,
-        random_state=config.random_state,
+        random_state=cfg.random_state,
         test_size=0.5,
         stratify="frequency_bucket",
     )
@@ -105,41 +105,41 @@ def main(config: DictConfig):
     train_loader = DataLoader(
         train_click_dataset,
         collate_fn=collate_fn,
-        batch_size=config.batch_size,
-        num_workers=config.num_workers,
+        batch_size=cfg.batch_size,
+        num_workers=cfg.num_workers,
         pin_memory=True,
     )
     val_click_loader = DataLoader(
         val_click_dataset,
         collate_fn=collate_fn,
-        batch_size=config.batch_size,
-        num_workers=config.num_workers,
+        batch_size=cfg.batch_size,
+        num_workers=cfg.num_workers,
         pin_memory=True,
     )
     val_rel_loader = DataLoader(
         val_rel_dataset,
         collate_fn=collate_fn,
-        batch_size=config.batch_size,
-        num_workers=config.num_workers,
+        batch_size=cfg.batch_size,
+        num_workers=cfg.num_workers,
         pin_memory=True,
     )
     test_click_loader = DataLoader(
         test_click_dataset,
         collate_fn=collate_fn,
-        batch_size=config.batch_size,
+        batch_size=cfg.batch_size,
     )
     test_rel_loader = DataLoader(
         test_rel_dataset,
         collate_fn=collate_fn,
-        batch_size=config.batch_size,
+        batch_size=cfg.batch_size,
     )
 
-    model = instantiate(config.model)
-    criterion = instantiate(config.loss)
+    model = instantiate(cfg.model)
+    criterion = instantiate(cfg.loss)
 
     trainer = Trainer(
         random_state=0,
-        optimizer=optax.adam(learning_rate=config.lr),
+        optimizer=optax.adam(learning_rate=cfg.lr),
         criterion=criterion,
         metric_fns={
             "ndcg@10": partial(rax.ndcg_metric, topn=10),
@@ -149,13 +149,13 @@ def main(config: DictConfig):
             "dcg@05": partial(rax.dcg_metric, topn=5),
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
-        epochs=config.max_epochs,
+        epochs=cfg.max_epochs,
         early_stopping=EarlyStopping(
-            metric=config.es_metric,
-            patience=config.es_patience,
+            metric=cfg.es_metric,
+            patience=cfg.es_patience,
         ),
-        save_checkpoints=config.checkpoints,
-        log_metrics=config.logging,
+        save_checkpoints=cfg.checkpoints,
+        log_metrics=cfg.logging,
     )
     best_state = trainer.train(
         model,
@@ -182,12 +182,12 @@ def main(config: DictConfig):
     )
     test_rel_df.to_parquet("test.parquet")
 
-    if config.logging:
+    if cfg.logging:
         wandb.finish()
 
     # Return best val metric for hyperparameter tuning using Optuna
     best_val_metrics = aggregate_metrics(val_rel_df)
-    return best_val_metrics[config.es_metric]
+    return best_val_metrics[cfg.es_metric]
 
 
 if __name__ == "__main__":
