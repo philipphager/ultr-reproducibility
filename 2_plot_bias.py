@@ -35,7 +35,7 @@ def get_synthetic_batch():
 def get_model(path: Path):
     GlobalHydra.instance().clear()
 
-    with initialize(version_base=None, config_path=str(path / ".hydra")):
+    with initialize(version_base=None, config_path="../../../.." + str(path / ".hydra")):
         config = compose(config_name="config.yaml")
         return instantiate(config.model)
 
