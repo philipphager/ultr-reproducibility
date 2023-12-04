@@ -13,20 +13,16 @@ hydra:
           lower: 0.00001
           upper: 0.1
           log: True
-          default_value: 0.001
         model.relevance_dims:
           type: uniform_int
           lower: 16
           upper: 1024
           log: True
-          default_value: 64
         model.relevance_layers:
           type: uniform_int
           lower: 1
           upper: 6
-          default_value: 3
         model.relevance_dropout:
           type: uniform_float
           lower: 0.0
           upper: 0.5
-          default_value: 0.1

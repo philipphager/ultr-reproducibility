@@ -11,7 +11,7 @@ hydra:
   sweeper:
     smac_class: smac.facade.blackbox_facade.BlackBoxFacade
     scenario:
-      seed: 42
+      seed: 0
       n_trials: 100
       deterministic: true
       n_workers: 8

@@ -6,12 +6,36 @@ defaults:
 
 hydra:
   sweeper:
-    study_name: pbm
-    params:
-      trainer.learning_rate: tag(log, interval(0.00001, 0.1))
-      model.relevance_dims: choice(16, 32, 64, 128, 256, 512, 1024)
-      model.relevance_layers: range(1, 6)
-      model.relevance_dropout: range(0.0, 0.5, step=0.1)
-      model.bias_dims: choice(16, 32, 64, 128, 256, 512, 1024)
-      model.bias_layers: range(1, 6)
-      model.bias_dropout: range(0.0, 0.5, step=0.1)
+    search_space:
+      hyperparameters:
+        lr:
+          type: uniform_float
+          lower: 0.00001
+          upper: 0.1
+          log: True
+        model.relevance_dims:
+          type: uniform_int
+          lower: 16
+          upper: 1024
+          log: True
+        model.relevance_layers:
+          type: uniform_int
+          lower: 1
+          upper: 6
+        model.relevance_dropout:
+          type: uniform_float
+          lower: 0.0
+          upper: 0.5
+        model.bias_dims:
+          type: uniform_int
+          lower: 16
+          upper: 1024
+          log: True
+        model.bias_layers:
+          type: uniform_int
+          lower: 1
+          upper: 6
+        model.bias_dropout:
+          type: uniform_float
+          lower: 0.0
+          upper: 0.5
