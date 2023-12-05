@@ -138,7 +138,7 @@ def main(config: DictConfig):
     criterion = instantiate(config.loss)
 
     trainer = Trainer(
-        random_state=0,
+        random_state=config.random_state,
         optimizer=optax.adam(learning_rate=config.lr),
         criterion=criterion,
         metric_fns={
