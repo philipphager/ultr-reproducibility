@@ -80,14 +80,14 @@ def plot(df, x, y, group, plot_ci=True):
     chart = base.mark_line(point=True, radius=10).encode(
         x=alt.X(f"{x}:O"),
         y=alt.Y(f"mean({y}):Q").scale(zero=False),
-        color=f"{group}:O" if group != "None" else None,
+        color=f"{group}:N" if group != "None" else None,
     )
 
     if plot_ci:
         chart += base.mark_errorband(extent="ci").encode(
             x=alt.X(f"{x}:O"),
             y=alt.Y(f"{y}:Q").scale(zero=False),
-            color=f"{group}:O" if group != "None" else None,
+            color=f"{group}:N" if group != "None" else None,
         )
 
     return chart
@@ -98,6 +98,13 @@ selected_run_name = st.sidebar.selectbox("Select W&B run:", run_names)
 
 df = download_data("cm-offline-metrics", "baidu-reproducibility", selected_run_name)
 metrics = get_available_metrics(df)
+
+meta_df = df.groupby(["model/_target_", "loss/_target_"]).agg(
+    random_states=("random_state", "nunique"),
+    runs=("random_state", "count"),
+).reset_index()
+
+st.write(meta_df)
 
 x = st.selectbox("Hyperparameter:", HYPERPARAMETERS)
 selected_metrics = st.multiselect("Metric:", METRICS, default=METRICS[0])
