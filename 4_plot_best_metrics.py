@@ -72,23 +72,22 @@ def get_available_metrics(df, stages=["train", "val", "test"]):
     return list(filter(filter_metrics, df.columns))
 
 
-def plot(df, x, y, group, plot_ci=True):
-    base = alt.Chart(df, width=400)
+def get_best_parameters(df, metric, minimize):
+    df[HYPERPARAMETERS] = df[HYPERPARAMETERS].fillna(-1)
 
-    chart = base.mark_line(point=True, radius=10).encode(
-        x=alt.X(f"{x}:O"),
-        y=alt.Y(f"mean({y}):Q").scale(zero=False),
-        color=f"{group}:N" if group != "None" else None,
+    param_df = (
+        df.groupby(["model/_target_", "loss/_target_"] + HYPERPARAMETERS)
+        .agg(val_metric=(metric, "mean"))
+        .reset_index()
     )
 
-    if plot_ci:
-        chart += base.mark_errorband(extent="ci").encode(
-            x=alt.X(f"{x}:O"),
-            y=alt.Y(f"{y}:Q").scale(zero=False),
-            color=f"{group}:N" if group != "None" else None,
+    return (
+        param_df.sort_values(
+            ["model/_target_", "loss/_target_", "val_metric"], ascending=minimize
         )
-
-    return chart
+        .groupby(["model/_target_", "loss/_target_"])
+        .head(1)
+    )
 
 
 run_names = get_available_runs("cm-offline-metrics", "baidu-reproducibility")
@@ -105,34 +104,18 @@ df = pd.concat(
 
 val_metrics = sorted(get_available_metrics(df, stages=["val"]))
 val_metric = st.selectbox("Val metric", val_metrics, index=10)
-test_metrics = sorted(get_available_metrics(df, stages=["test"]))
 minimize = st.checkbox("Minimize val", False)
+test_metrics = sorted(get_available_metrics(df, stages=["test"]))
 test_metric = st.selectbox("Test metric", test_metrics, index=10)
 
-
-df[HYPERPARAMETERS] = df[HYPERPARAMETERS].fillna(-1)
-param_df = df.groupby(["model/_target_", "loss/_target_"] + HYPERPARAMETERS).agg(
-    val_metric=(val_metric, "mean"),
-).reset_index()
-
-with st.expander("Show data:"):
-    st.write(param_df.sort_values(["model/_target_", "loss/_target_", "val_metric"], ascending=minimize))
-
-param_df = (
-param_df.sort_values(["model/_target_", "loss/_target_", "val_metric"], ascending=minimize)
-    .groupby(["model/_target_", "loss/_target_"])
-    .head(1)
-)
-
+param_df = get_best_parameters(df, val_metric, minimize)
 columns = ["model/_target_", "loss/_target_"] + HYPERPARAMETERS
-
 df = df.merge(param_df[columns], on=columns)
 
 df["model/_target_"] = df["model/_target_"].map(lambda x: x.replace("src.models.", ""))
 df["name"] = df["model/_target_"] + " - " + df["loss/_target_"]
 
 base = alt.Chart(df, width=800, height=600)
-
 chart = base.mark_bar().encode(
     x=alt.X("name").title("model"),
     y=alt.Y(f"mean({test_metric})").title(test_metric),
@@ -140,10 +123,9 @@ chart = base.mark_bar().encode(
 ) + base.mark_errorbar().encode(
     x=alt.X("name").title("model"),
     y=alt.Y(f"{test_metric}").title(test_metric),
-    strokeWidth=alt.value(2)
+    strokeWidth=alt.value(2),
 )
 
 st.write(chart)
-
 st.markdown("Best hyperparameters:")
 st.table(param_df)
