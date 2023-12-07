@@ -93,7 +93,7 @@ def plot(df, x, y, group, plot_ci=True):
 
 run_names = get_available_runs("cm-offline-metrics", "baidu-reproducibility")
 run_names = [r for r in run_names if "grid" in r]
-selected_runs = st.sidebar.multiselect("Select W&B run:", run_names)
+selected_runs = st.sidebar.multiselect("Select W&B run:", run_names, default=run_names)
 
 df = pd.concat(
     [
@@ -102,32 +102,36 @@ df = pd.concat(
     ]
 )
 
-val_metrics = get_available_metrics(df, stages=["val"])
-val_metric = st.selectbox("Val metric", val_metrics)
-test_metrics = get_available_metrics(df, stages=["test"])
+
+val_metrics = sorted(get_available_metrics(df, stages=["val"]))
+val_metric = st.selectbox("Val metric", val_metrics, index=10)
+test_metrics = sorted(get_available_metrics(df, stages=["test"]))
 minimize = st.checkbox("Minimize val", False)
-test_metric = st.selectbox("Test metric", test_metrics)
+test_metric = st.selectbox("Test metric", test_metrics, index=10)
 
 
 df[HYPERPARAMETERS] = df[HYPERPARAMETERS].fillna(-1)
-param_df = df.groupby(["model/_target_"] + HYPERPARAMETERS).agg(
+param_df = df.groupby(["model/_target_", "loss/_target_"] + HYPERPARAMETERS).agg(
     val_metric=(val_metric, "mean"),
 ).reset_index()
 
+with st.expander("Show data:"):
+    st.write(param_df.sort_values(["model/_target_", "loss/_target_", "val_metric"], ascending=minimize))
+
 param_df = (
-    param_df.sort_values(["model/_target_", "val_metric"], ascending=minimize)
-    .groupby(["model/_target_"])
+param_df.sort_values(["model/_target_", "loss/_target_", "val_metric"], ascending=minimize)
+    .groupby(["model/_target_", "loss/_target_"])
     .head(1)
 )
 
-columns = ["model/_target_"] + HYPERPARAMETERS
+columns = ["model/_target_", "loss/_target_"] + HYPERPARAMETERS
 
 df = df.merge(param_df[columns], on=columns)
 
 df["model/_target_"] = df["model/_target_"].map(lambda x: x.replace("src.models.", ""))
 df["name"] = df["model/_target_"] + " - " + df["loss/_target_"]
 
-base = alt.Chart(df, width=800, height=400)
+base = alt.Chart(df, width=800, height=600)
 
 chart = base.mark_bar().encode(
     x=alt.X("name").title("model"),
@@ -140,3 +144,6 @@ chart = base.mark_bar().encode(
 )
 
 st.write(chart)
+
+st.markdown("Best hyperparameters:")
+st.table(param_df)
