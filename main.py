@@ -157,12 +157,13 @@ def main(config: DictConfig):
         save_checkpoints=config.checkpoints,
         log_metrics=config.logging,
     )
-    best_state = trainer.train(
+    best_state, history_df = trainer.train(
         model,
         train_loader,
         val_click_loader,
         val_rel_loader,
     )
+    history_df.to_parquet("history.parquet")
 
     _, val_rel_df = trainer.eval(
         model,
