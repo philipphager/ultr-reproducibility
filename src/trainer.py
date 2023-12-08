@@ -79,6 +79,7 @@ class Trainer:
             val_metrics = {**val_click_metrics, **val_rel_metrics}
 
             has_improved, should_stop = self.early_stopping.update(val_metrics)
+            logger.info(f"Epoch {epoch}: {val_metrics}, has_improved: {has_improved}")
 
             if has_improved:
                 best_model_state = state
@@ -88,15 +89,12 @@ class Trainer:
 
             epoch_metrics = {
                 "Val/": val_metrics,
-                "Train/loss": train_loss,
+                "Train/loss": float(train_loss),
                 "Misc/TimePerEpoch": (time.time() - start_time) / (epoch + 1),
                 "Misc/Epoch": epoch,
             }
-
-            # Flatten nested dictionary to a single level:
-            flat_metrics = pd.json_normalize(epoch_metrics, sep="")
-            logger.info(f"Epoch {epoch}: {flat_metrics}, has_improved: {has_improved}")
-            history.append(flat_metrics)
+            print(pd.json_normalize(epoch_metrics, sep=""))
+            history.append(pd.json_normalize(epoch_metrics, sep=""))
 
             if self.log_metrics:
                 wandb.log(epoch_metrics, step=epoch)
@@ -105,7 +103,7 @@ class Trainer:
                 logger.info(f"Epoch: {epoch}: Stopping early")
                 break
 
-        history_df = pd.DataFrame(history)
+        history_df = pd.concat(history)
         return best_model_state, history_df
 
     def eval(
