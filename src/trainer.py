@@ -1,3 +1,4 @@
+import pandas as pd
 import enum
 import logging
 import os
@@ -58,10 +59,11 @@ class Trainer:
         train_loader: DataLoader,
         val_click_loader: Optional[DataLoader],
         val_rel_loader: Optional[DataLoader],
-    ) -> TrainState:
+    ) -> Tuple[TrainState, pd.DataFrame]:
         start_time = time.time()
         state = self._init_train_state(model, train_loader)
         best_model_state = state
+        history = []
 
         for epoch in range(self.epochs):
             state, train_loss = self._train_epoch(
@@ -77,7 +79,6 @@ class Trainer:
             val_metrics = {**val_click_metrics, **val_rel_metrics}
 
             has_improved, should_stop = self.early_stopping.update(val_metrics)
-            logger.info(f"Epoch {epoch}: {val_metrics}, has_improved: {has_improved}")
 
             if has_improved:
                 best_model_state = state
@@ -85,23 +86,27 @@ class Trainer:
                 if self.save_checkpoints:
                     save_state(state, Path(os.getcwd()), "best_state")
 
-            if self.log_metrics:
-                secs_per_epoch = (time.time() - start_time) / (epoch + 1)
+            epoch_metrics = {
+                "Val/": val_metrics,
+                "Train/loss": train_loss,
+                "Misc/TimePerEpoch": (time.time() - start_time) / (epoch + 1),
+                "Misc/Epoch": epoch,
+            }
 
-                wandb.log(
-                    {
-                        "Val/": val_metrics,
-                        "Train/loss": train_loss,
-                        "Misc/TimePerEpoch": secs_per_epoch,
-                    },
-                    step=epoch,
-                )
+            # Flatten nested dictionary to a single level:
+            flat_metrics = pd.json_normalize(epoch_metrics, sep="")
+            logger.info(f"Epoch {epoch}: {flat_metrics}, has_improved: {has_improved}")
+            history.append(flat_metrics)
+
+            if self.log_metrics:
+                wandb.log(epoch_metrics, step=epoch)
 
             if should_stop:
                 logger.info(f"Epoch: {epoch}: Stopping early")
                 break
 
-        return best_model_state
+        history_df = pd.DataFrame(history)
+        return best_model_state, history_df
 
     def eval(
         self,
