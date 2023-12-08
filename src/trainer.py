@@ -93,7 +93,6 @@ class Trainer:
                 "Misc/TimePerEpoch": (time.time() - start_time) / (epoch + 1),
                 "Misc/Epoch": epoch,
             }
-            print(pd.json_normalize(epoch_metrics, sep=""))
             history.append(pd.json_normalize(epoch_metrics, sep=""))
 
             if self.log_metrics:
