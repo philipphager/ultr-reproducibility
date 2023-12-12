@@ -2,6 +2,7 @@ from typing import Union, Tuple
 
 from flax import linen as nn
 from jax import Array
+import jax.numpy as jnp
 
 from src.models.base import Tower
 from src.models.two_tower import TowerCombination, combine_towers, BiasTower
@@ -20,6 +21,7 @@ class PositionBasedModel(nn.Module):
     relevance_layers: int
     relevance_dropout: float
     tower_combination: TowerCombination
+    propensities_path: str = None
 
     def setup(self) -> None:
         self.relevance_model = Tower(
@@ -27,14 +29,18 @@ class PositionBasedModel(nn.Module):
             layers=self.relevance_layers,
             dropout=self.relevance_dropout,
         )
-        self.bias_model = BiasTower(
-            dims=self.bias_dims,
-            layers=self.bias_layers,
-            dropout=self.bias_dropout,
-            embeddings={
-                "position": nn.Embed(num_embeddings=50, features=8),
-            },
-        )
+        if self.propensities_path is None:
+            self.bias_model = BiasTower(
+                dims=self.bias_dims,
+                layers=self.bias_layers,
+                dropout=self.bias_dropout,
+                embeddings={
+                    "position": nn.Embed(num_embeddings=50, features=8),
+                },
+            )
+        else:
+            propensities = jnp.load(self.propensities_path)
+            self.bias_model = lambda batch: propensities[batch["position"]]
 
     def __call__(
         self, batch, training: bool = False

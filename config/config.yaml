@@ -7,7 +7,7 @@ defaults:
 
 random_state: 381
 batch_size: 256
-lr: 0.0001
+lr: 0.001
 max_epochs: 25
 es_metric: dcg@10
 es_patience: 4

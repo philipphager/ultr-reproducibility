@@ -107,3 +107,25 @@ def behavior_cloning(
                 jnp.broadcast_to(jnp.power( 1 / jnp.arange(1, labels.shape[1]+1), 2), labels.shape),
                 where=where,
                 reduce_fn=reduce_fn,)
+
+def inverse_propensity_weighting(
+    scores: Tuple[Array, Array],
+    labels: Array,
+    where: Array,
+    loss_fn: LossFn = rax.softmax_loss,
+    max_weight: float = 10,
+    reduce_fn: Optional[Callable] = jnp.mean,
+):
+    assert len(scores) == 2, "Scores must be a tuple of: (examination, relevance)"
+    examination, relevance = scores
+    examination_weights = _get_normalized_weights(examination, where, max_weight)
+
+    ipw_loss = loss_fn(
+        relevance,
+        labels,
+        where=where,
+        weights=examination_weights,
+        reduce_fn=reduce_fn,
+    )
+
+    return ipw_loss
