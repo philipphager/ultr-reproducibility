@@ -23,8 +23,8 @@ def main(
     # For the cross-entopy maximization in AllPairs
     torch.manual_seed(random_state)
 
-    cache_directory = Path(cache_directory)
-    cache_directory.expanduser().mkdir(parents=True, exist_ok=True)
+    cache_directory = Path(cache_directory).expanduser()
+    cache_directory.mkdir(parents=True, exist_ok=True)
     feature_path = cache_directory / "features-part-0.csv"
 
     if not feature_path.exists():
