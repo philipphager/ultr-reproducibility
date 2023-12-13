@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.9.7 || >3.9.7,<3.13" # Streamlit requires !=3.9.7
-jax = {version = "0.4.21+cuda11.cudnn86", source = "jax_cuda"}
+jaxlib = {version = "0.4.21+cuda11.cudnn86", source = "jax_cuda"}
 jax = {version = "0.4.21", extras=["cuda11_pip"]}
 flax = "^0.7.5"
 torch = {version = "^2.1.1", source = "torch_cpu"}
