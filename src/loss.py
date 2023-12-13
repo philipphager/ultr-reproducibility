@@ -50,8 +50,8 @@ def dual_learning_algorithm(
     """
     assert len(scores) == 2, "Scores must be a tuple of: (examination, relevance)"
     examination, relevance = scores
-    examination_weights = _get_normalized_weights(examination, where, max_weight)
-    relevance_weights = _get_normalized_weights(relevance, where, max_weight)
+    examination_weights = _get_normalized_weights(examination, where, max_weight, softmax = True)
+    relevance_weights = _get_normalized_weights(relevance, where, max_weight, softmax = True)
 
     examination_loss = loss_fn(
         examination,
@@ -75,16 +75,20 @@ def _get_normalized_weights(
     scores: Array,
     where: Array,
     max_weight: float,
+    softmax: bool = False,
 ) -> Array:
     """
     Converts logits to normalized propensity weights by:
-    1. Applying a softmax to all scores in a ranking (ignoring masked values)
+    1. [Optional] Applying a softmax to all scores in a ranking (ignoring masked values)
     2. Normalizing the resulting probabilities by the first item in each ranking
     3. Inverting propensities to obtain weights: e.g., propensity 0.5 -> weight 2
     4. Clip the final weights to reduce variance
     """
     scores = jnp.where(where, scores, -jnp.ones_like(scores) * jnp.inf)
-    probabilities = nn.softmax(scores, axis=-1)
+    if softmax:
+        probabilities = nn.softmax(scores, axis=-1)
+    else:
+        probabilities = scores
     # Normalize propensities by the item in first position and convert propensities
     # to weights by computing weights as 1 / propensities:
     weights = probabilities[:, 0].reshape(-1, 1) / probabilities
@@ -107,3 +111,25 @@ def behavior_cloning(
                 jnp.broadcast_to(jnp.power( 1 / jnp.arange(1, labels.shape[1]+1), 2), labels.shape),
                 where=where,
                 reduce_fn=reduce_fn,)
+
+def inverse_propensity_weighting(
+    scores: Tuple[Array, Array],
+    labels: Array,
+    where: Array,
+    loss_fn: LossFn = rax.softmax_loss,
+    max_weight: float = 10,
+    reduce_fn: Optional[Callable] = jnp.mean,
+):
+    assert len(scores) == 2, "Scores must be a tuple of: (examination, relevance)"
+    examination, relevance = scores
+    examination_weights = _get_normalized_weights(examination, where, max_weight, softmax = False)
+
+    ipw_loss = loss_fn(
+        relevance,
+        labels,
+        where=where,
+        weights=examination_weights,
+        reduce_fn=reduce_fn,
+    )
+
+    return ipw_loss

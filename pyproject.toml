@@ -1,14 +1,14 @@
 [tool.poetry]
 name = "baidu-reproducibility"
-version = "0.4.0"
+version = "0.5.0"
 description = ""
 authors = ["Philipp Hager <p.k.hager@uva.nl>", "Romain Deffayet <r.e.deffayet@uva.nl>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.9.7 || >3.9.7,<3.13" # Streamlit requires !=3.9.7
-jaxlib = {version = "0.4.20+cuda11.cudnn86", source = "jax_cuda"}
-jax = {version = "0.4.20", extras=["cuda11_pip"]}
+jaxlib = {version = "0.4.21+cuda11.cudnn86", source = "jax_cuda"}
+jax = {version = "0.4.21", extras=["cuda11_pip"]}
 flax = "^0.7.5"
 torch = {version = "^2.1.1", source = "torch_cpu"}
 datasets = "^2.14.6"
@@ -27,6 +27,8 @@ streamlit = "^1.28.1"
 typer = " ^0.9.0"
 wandb = "^0.16.0"
 kdepy = "^1.1.8"
+ultr-bias-toolkit = "^0.0.5"
+
 
 
 [[tool.poetry.source]]

@@ -1,0 +1,5 @@
+_target_: src.loss.inverse_propensity_weighting
+_partial_: True
+loss_fn:
+  _target_: rax.softmax_loss
+  _partial_: True
