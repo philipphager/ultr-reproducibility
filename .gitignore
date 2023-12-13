@@ -13,6 +13,8 @@ wandb
 outputs
 multirun
 
++.parquet
+
 # Misc
 slurm.sh
 poetry.lock
