@@ -1,7 +1,7 @@
 defaults:
   - _self_
-  - data: tencent
-  - model: two-towers
+  - data: baidu
+  - model: pbm
   - loss: listwise
   - user_const
 

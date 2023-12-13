@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import List
 
-import numpy as np
 import pandas as pd
 import torch
 from ultr_bias_toolkit.bias.intervention_harvesting import AdjacentChainEstimator
@@ -59,10 +58,10 @@ def main(
         columns="estimator",
     )
     print(examination_df.head(10))
-    print(len(examination_df))
 
+    Path("propensities").mkdir(parents=True, exist_ok=True)
     for name in estimators.keys():
-        np.save(f"propensities/{name}_nofake.npy", examination_df[name].to_numpy())
+        examination_df[name].to_csv(f"propensities/{name}.csv")
 
 
 if __name__ == "__main__":

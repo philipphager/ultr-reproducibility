@@ -3,6 +3,7 @@ from typing import Union, Tuple
 from flax import linen as nn
 from jax import Array
 import jax.numpy as jnp
+import numpy as np
 
 from src.models.base import Tower
 from src.models.two_tower import TowerCombination, combine_towers, BiasTower
@@ -39,7 +40,7 @@ class PositionBasedModel(nn.Module):
                 },
             )
         else:
-            propensities = jnp.load(self.propensities_path)
+            propensities = jnp.asarray(np.genfromtxt(self.propensities_path, delimiter=',')[1])
             self.bias_model = lambda batch: propensities[batch["position"]]
 
     def __call__(
