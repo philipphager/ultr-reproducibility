@@ -67,7 +67,6 @@ def parse_local(run_path: Path) -> pd.DataFrame:
     incomplete_runs = 0
 
     for path in tqdm(run_path.iterdir(), desc=f"Loading {run_path.name} locally"):
-        path = Path(path)
         config_path = path / ".hydra/config.yaml"
         history_path = path / "history.parquet"
 
@@ -114,7 +113,6 @@ def main(
         dfs.append(parse_remote(wandb_entity, wandb_project, run))
 
     for run_directory in local_directory.iterdir():
-        run_directory = Path(run_directory)
 
         if run_directory.is_dir():
             dfs.append(parse_local(run_directory))
