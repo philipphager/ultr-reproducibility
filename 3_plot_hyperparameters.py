@@ -154,8 +154,15 @@ df = load_best_val_metric_per_run(file, metric)
 df = preprocess_runs(df)
 df = filter_runs(df, base_model=base_model, ignore_early_stopping=ignore_early_stopping)
 
-
 source = df[(df.model == model) & (df.loss == loss)]
+
+st.sidebar.divider()
+st.sidebar.markdown(f"""
+**Runs:** {len(source)}\n
+**Learning rates**: {source["lr"].unique()}\n
+**Random states**: {source["random_state"].unique()}\n
+""")
+
 row = []
 
 for y in metrics:
