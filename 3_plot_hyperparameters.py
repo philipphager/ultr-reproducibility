@@ -72,6 +72,9 @@ def load_best_val_metric_per_run(path: str, metric: str) -> pd.DataFrame:
         "random_state",
     ]
 
+    # Some models do not use all hyperparameters we group by, make sure they are set:
+    df[columns] = df[columns].fillna(-1)
+
     return (
         df.sort_values(columns + [metric], ascending=minimize).groupby(columns).head(1)
     )
