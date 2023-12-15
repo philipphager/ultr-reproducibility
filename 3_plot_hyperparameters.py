@@ -1,9 +1,14 @@
 import altair as alt
 import pandas as pd
 import streamlit as st
-import wandb
 
 st.set_page_config(layout="wide")
+
+
+BASE_MODELS = [
+    "baidu-ultr_baidu-base-12L",
+    "baidu-ultr_tencent-bert-12L",
+]
 
 HYPERPARAMETERS = [
     "lr",
@@ -15,67 +20,111 @@ HYPERPARAMETERS = [
     "model/bias_dropout",
 ]
 
+LOSSES = [
+    "pointwise",
+    "listwise",
+    "pointwise-em",
+    "listwise-dla",
+    "pointwise-ipw",
+    "pairwise-ipw",
+    "listwise-ipw",
+]
+
 METRICS = [
     "Val/click_loss",
+    "Val/BC_dcg@01",
+    "Val/BC_dcg@03",
+    "Val/BC_dcg@05",
+    "Val/BC_dcg@10",
+    "Val/BC_mrr@10",
+    "Val/BC_ndcg@10",
     "Val/dcg@01",
     "Val/dcg@03",
     "Val/dcg@05",
     "Val/dcg@10",
-    "Val/ndcg@10",
     "Val/mrr@10",
-    "Test/dcg@01",
-    "Test/dcg@03",
-    "Test/dcg@05",
-    "Test/dcg@10",
-    "Test/ndcg@10",
-    "Test/mrr@10",
-    "Train/loss",
+    "Val/ndcg@10",
+]
+
+DEFAULT_METRICS = [
+    "Val/click_loss",
+    "Val/ndcg@10",
+    "Val/BC_ndcg@10",
+]
+
+MODELS = [
+    "NaiveModel",
+    "PositionBasedModel",
+    "TwoTowerModel",
 ]
 
 
 @st.cache_data()
-def download_data(entity, project, run):
-    api = wandb.Api()
-    runs = api.runs(f"{entity}/{project}", filters={"config.config.run_name": run})
-    return pd.concat([parse(run) for run in runs])
+def load_best_val_metric_per_run(path: str, metric: str) -> pd.DataFrame:
+    df = pd.read_parquet(path)
+    minimize = "loss" in metric.lower()
+
+    columns = [
+        "data/name",
+        "lr",
+        "loss/_target_",
+        "model/_target_",
+        "model/relevance_dims",
+        "model/relevance_layers",
+        "model/relevance_dropout",
+        "model/bias_dims",
+        "model/bias_layers",
+        "model/bias_dropout",
+        "random_state",
+    ]
+
+    # Some models do not use all hyperparameters we group by, make sure they are set:
+    df[columns] = df[columns].fillna(-1)
+
+    return (
+        df.sort_values(columns + [metric], ascending=minimize).groupby(columns).head(1)
+    )
 
 
-def get_available_runs(entity, project):
-    api = wandb.Api()
-    runs = api.runs(f"{entity}/{project}")
-    configs = [r.config for r in runs if "config" in r.config]
+@st.cache_data()
+def filter_runs(
+    df: pd.DataFrame,
+    base_model: str,
+    ignore_early_stopping: bool,
+):
+    df = df[df["base_model"] == base_model]
 
-    return sorted(set([c["config"]["run_name"] for c in configs]))
+    if ignore_early_stopping:
+        df = df[df.max_epochs <= df.es_patience]
 
-
-def parse(run):
-    history_df = run.history(pandas=True)
-
-    if len(history_df) > 0:
-        metric_df = best_metric(history_df)
-    else:
-        st.warning("Run history not found, parsing metrics from an incomplete run.")
-        metric_df = pd.json_normalize(run.summary._json_dict, sep="")
-
-    config_df = pd.json_normalize(run.config, sep="/")
-    return pd.concat([config_df, metric_df], axis=1)
+    return df
 
 
-def best_metric(history_df):
-    columns = get_available_metrics(history_df)
-    aggregation = {c: "min" if "loss" in c.lower() else "max" for c in columns}
-    history_df = history_df.agg(aggregation).to_frame().T
-    history_df.columns = [c.replace(".", "") for c in history_df.columns]
-    return history_df
+@st.cache_data()
+def preprocess_runs(
+    df: pd.DataFrame,
+):
+    loss2name = {
+        "rax.softmax_loss": "listwise",
+        "rax.pointwise_sigmoid_loss": "pointwise",
+        "src.loss.regression_em": "em",
+        "src.loss.dual_learning_algorithm": "dla",
+        "src.loss.inverse_propensity_weighting": "ipw",
+        "pointwise_mse_loss": "mse",
+    }
+
+    df["base_model"] = df["data/name"].str.split("/").map(lambda x: x[-1])
+    df["model"] = df["model/_target_"].str.split(".").map(lambda x: x[-1])
+
+    loss_prefix = df["loss/loss_fn/_target_"].map(loss2name) + "-"
+    df["loss"] = loss_prefix.fillna("") + df["loss/_target_"].map(loss2name)
+
+    return df
 
 
-def get_available_metrics(df):
-    filter_metrics = lambda x: any([i in x.lower() for i in ["train", "val", "test"]])
-    return list(filter(filter_metrics, df.columns))
-
-
+@st.cache_data()
 def plot(df, x, y, group, plot_ci=True):
-    base = alt.Chart(df, width=400)
+    base = alt.Chart(df, width=600, height=400)
 
     chart = base.mark_line(point=True, radius=10).encode(
         x=alt.X(f"{x}:O"),
@@ -93,30 +142,41 @@ def plot(df, x, y, group, plot_ci=True):
     return chart
 
 
-run_names = get_available_runs("cm-offline-metrics", "baidu-reproducibility")
-selected_run_name = st.sidebar.selectbox("Select W&B run:", run_names)
+st.sidebar.markdown("### Load hyperparameters:")
+file = st.sidebar.text_input("File:", value="multirun/hyperparameters.parquet")
 
-df = download_data("cm-offline-metrics", "baidu-reproducibility", selected_run_name)
-metrics = get_available_metrics(df)
+st.sidebar.markdown("### Filter runs:")
+base_model = st.sidebar.selectbox("Base model", BASE_MODELS)
+metric = st.sidebar.selectbox("Select best run based on:", METRICS)
+model = st.sidebar.selectbox("Model", MODELS)
+loss = st.sidebar.selectbox("Loss", LOSSES)
+ignore_early_stopping = st.sidebar.toggle("Ignore runs with early stopping")
 
-meta_df = df.groupby(["model/_target_", "loss/_target_"]).agg(
-    random_states=("random_state", "nunique"),
-    runs=("random_state", "count"),
-).reset_index()
-
-st.write(meta_df)
-
-x = st.selectbox("Hyperparameter:", HYPERPARAMETERS)
-selected_metrics = st.multiselect("Metric:", METRICS, default=METRICS[0])
-group = st.selectbox("Group by:", ["model/_target_", "random_state"] + HYPERPARAMETERS)
-plot_ci = st.checkbox("Plot CI:", value=True)
-
+st.markdown("### Plot hyperparameters:")
+parameter = st.selectbox("Hyperparameter", HYPERPARAMETERS)
+group = st.selectbox("Group by", ["model", "random_state"] + HYPERPARAMETERS)
+metrics = st.multiselect("Show metrics:", METRICS, default=DEFAULT_METRICS)
+plot_ci = st.toggle("Bootstrap confidence interval:", True)
 st.divider()
+
+df = load_best_val_metric_per_run(file, metric)
+df = preprocess_runs(df)
+df = filter_runs(df, base_model=base_model, ignore_early_stopping=ignore_early_stopping)
+
+source = df[(df.model == model) & (df.loss == loss)]
+
+st.sidebar.divider()
+st.sidebar.markdown(f"""
+**Runs:** {len(source)}\n
+**Learning rates**: {source["lr"].unique()}\n
+**Random states**: {source["random_state"].unique()}\n
+""")
 
 row = []
 
-for y in selected_metrics:
-    row.append(plot(df, x, y, group, plot_ci))
+for y in metrics:
+    chart = plot(source, x=parameter, y=y, group=group, plot_ci=plot_ci)
+    row.append(chart)
 
 chart = alt.hconcat(*row)
 st.write(chart)
