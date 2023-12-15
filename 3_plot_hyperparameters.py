@@ -32,18 +32,24 @@ LOSSES = [
 
 METRICS = [
     "Val/click_loss",
+    "Val/BC_dcg@01",
+    "Val/BC_dcg@03",
+    "Val/BC_dcg@05",
+    "Val/BC_dcg@10",
+    "Val/BC_mrr@10",
+    "Val/BC_ndcg@10",
     "Val/dcg@01",
     "Val/dcg@03",
     "Val/dcg@05",
     "Val/dcg@10",
-    "Val/ndcg@10",
     "Val/mrr@10",
+    "Val/ndcg@10",
 ]
 
 DEFAULT_METRICS = [
     "Val/click_loss",
-    "Val/mrr@10",
     "Val/ndcg@10",
+    "Val/BC_ndcg@10",
 ]
 
 MODELS = [
