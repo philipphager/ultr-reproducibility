@@ -148,13 +148,13 @@ file = st.sidebar.text_input("File:", value="multirun/hyperparameters.parquet")
 st.sidebar.markdown("### Filter runs:")
 base_model = st.sidebar.selectbox("Base model", BASE_MODELS)
 metric = st.sidebar.selectbox("Select best run based on:", METRICS)
-model = st.sidebar.selectbox("Model", MODELS)
-loss = st.sidebar.selectbox("Loss", LOSSES)
+models = st.sidebar.multiselect("Model", MODELS, default=["NaiveModel"])
+losses = st.sidebar.multiselect("Loss", LOSSES, default=["pointwise"])
 ignore_early_stopping = st.sidebar.toggle("Ignore runs with early stopping")
 
 st.markdown("### Plot hyperparameters:")
 parameter = st.selectbox("Hyperparameter", HYPERPARAMETERS)
-group = st.selectbox("Group by", ["model", "random_state"] + HYPERPARAMETERS)
+group = st.selectbox("Group by", ["model", "loss", "random_state"] + HYPERPARAMETERS)
 metrics = st.multiselect("Show metrics:", METRICS, default=DEFAULT_METRICS)
 plot_ci = st.toggle("Bootstrap confidence interval:", True)
 st.divider()
@@ -163,7 +163,7 @@ df = load_best_val_metric_per_run(file, metric)
 df = preprocess_runs(df)
 df = filter_runs(df, base_model=base_model, ignore_early_stopping=ignore_early_stopping)
 
-source = df[(df.model == model) & (df.loss == loss)]
+source = df[(df.model.isin(models)) & (df.loss.isin(losses))]
 
 st.sidebar.divider()
 st.sidebar.markdown(f"""
