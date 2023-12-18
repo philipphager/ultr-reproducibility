@@ -67,10 +67,12 @@ def plot(df, color):
 
     return bar + error
 
-
-st.markdown("### Best Parameters")
+st.markdown("### Find the best hyperparameters")
 metric = st.selectbox("Select best run based on:", METRICS)
 minimize = "loss" in metric.lower()
+st.markdown(f"Minimizing metric: {minimize}")
+
+st.divider()
 
 df = load_best_val_metric_per_run("multirun/hyperparameters.parquet", metric, minimize)
 
