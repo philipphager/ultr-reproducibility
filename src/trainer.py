@@ -43,6 +43,7 @@ class Trainer:
         early_stopping: EarlyStopping,
         save_checkpoints: bool = True,
         log_metrics: bool = True,
+        progress_bar: bool = True,
     ):
         self.random_state = random_state
         self.optimizer = optimizer
@@ -52,6 +53,7 @@ class Trainer:
         self.early_stopping = early_stopping
         self.save_checkpoints = save_checkpoints
         self.log_metrics = log_metrics
+        self.progress_bar = progress_bar
 
     def train(
         self,
@@ -148,7 +150,7 @@ class Trainer:
     def _train_epoch(self, model, state, loader, description):
         epoch_loss = 0
 
-        for batch in tqdm(loader, desc=description):
+        for batch in tqdm(loader, desc=description, disable=not self.progress_bar):
             state, loss = self._train_step(model, state, batch)
             epoch_loss += loss
 
@@ -158,10 +160,10 @@ class Trainer:
     def _eval_epoch(self, model, state, click_loader, rel_loader, description):
         click_metrics, rel_metrics = [], []
 
-        for batch in tqdm(click_loader, desc=description):
+        for batch in tqdm(click_loader, desc=description, disable=not self.progress_bar):
             click_metrics.append(self._eval_click_step(model, state, batch))
 
-        for batch in tqdm(rel_loader, desc=description):
+        for batch in tqdm(rel_loader, desc=description, disable=not self.progress_bar):
             rel_metrics.append(self._eval_rel_step(model, state, batch))
 
         return collect_metrics(click_metrics), collect_metrics(rel_metrics)

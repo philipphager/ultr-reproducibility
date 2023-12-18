@@ -156,6 +156,7 @@ def main(config: DictConfig):
         ),
         save_checkpoints=config.checkpoints,
         log_metrics=config.logging,
+        progress_bar = config.progress_bar,
     )
     best_state, history_df = trainer.train(
         model,
