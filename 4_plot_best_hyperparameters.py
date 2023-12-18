@@ -54,14 +54,15 @@ def plot(df, color):
 
     base = alt.Chart(df, width=900, height=450)
 
-    bar = base.mark_bar().encode(
+    bar = base.mark_circle(size=100).encode(
         x=alt.X("name", sort="x"),
-        y=f"mean({plot_metric})",
+        y=alt.Y(f"mean({plot_metric})").scale(zero=False),
         color=color,
     )
     error = base.mark_errorbar().encode(
         x=alt.X("name", sort="x"),
-        y=plot_metric,
+        y=alt.Y(plot_metric).scale(zero=False),
+        color=color,
         strokeWidth=alt.value(2),
     )
 
