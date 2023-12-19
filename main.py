@@ -32,10 +32,12 @@ logging.basicConfig(
     ],
 )
 
+
 def load_train_data(config: DictConfig):
+    name = "clicks-filtered" if config.data.filter_urls else "clicks"
     train_dataset = load_dataset(
         config.data.name,
-        name="clicks",
+        name=name,
         split="train",
         cache_dir=config.cache_dir,
     )
@@ -156,7 +158,7 @@ def main(config: DictConfig):
         ),
         save_checkpoints=config.checkpoints,
         log_metrics=config.logging,
-        progress_bar = config.progress_bar,
+        progress_bar=config.progress_bar,
     )
     best_state, history_df = trainer.train(
         model,
