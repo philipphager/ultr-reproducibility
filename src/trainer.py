@@ -208,7 +208,7 @@ class Trainer:
         )
 
         # This is an issue with rax's API: reduce_fn behaves differently for pointwise and listwise losses
-        reduce_fn = lambda a, where: a.reshape(len(a), -1).mean(axis=1,where=where.reshape(len(where), -1))
+        reduce_fn = lambda a, where: a.reshape(len(a), -1).mean(axis=1, where=where.reshape(len(where), -1))
         loss = self.criterion(
             y_predict,
             batch["click"],
