@@ -24,6 +24,7 @@ logger = logging.getLogger("rich")
 
 class TrainState(train_state.TrainState):
     dropout_key: jax.Array
+    random_model_key: jax.Array
 
 
 class Stage(str, enum.Enum):
@@ -104,7 +105,7 @@ class Trainer:
                 logger.info(f"Epoch: {epoch}: Stopping early")
                 break
 
-        history_df = pd.concat(history)
+        history_df = pd.concat(history) if len(history) > 0 else pd.DataFrame([])
         return best_model_state, history_df
 
     def eval(
@@ -134,9 +135,12 @@ class Trainer:
 
     def _init_train_state(self, model, train_loader):
         key = jax.random.PRNGKey(self.random_state)
-        key, param_key, dropout_key = jax.random.split(key, num=3)
-
-        init_rngs = {"params": param_key, "dropout": dropout_key}
+        key, param_key, dropout_key, random_model_key = jax.random.split(key, num=4)
+        init_rngs = {
+            "params": param_key,
+            "dropout": dropout_key,
+            "random_model": random_model_key,
+        }
         init_data = next(iter(train_loader))
         params = model.init(init_rngs, init_data, training=True)
 
@@ -145,13 +149,14 @@ class Trainer:
             params=params,
             tx=self.optimizer,
             dropout_key=dropout_key,
+            random_model_key=random_model_key,
         )
 
     def _train_epoch(self, model, state, loader, description):
         epoch_loss = 0
 
         for batch in tqdm(loader, desc=description, disable=not self.progress_bar):
-            state, loss = self._train_step(model, state, batch)
+            state, loss = self._train_step(model, state, batch, state.step)
             epoch_loss += loss
 
         epoch_loss /= len(loader)
@@ -160,24 +165,28 @@ class Trainer:
     def _eval_epoch(self, model, state, click_loader, rel_loader, description):
         click_metrics, rel_metrics = [], []
 
-        for batch in tqdm(click_loader, desc=description, disable=not self.progress_bar):
-            click_metrics.append(self._eval_click_step(model, state, batch))
+        for step, batch in tqdm(
+            enumerate(click_loader), desc=description, disable=not self.progress_bar
+        ):
+            click_metrics.append(self._eval_click_step(model, state, batch, step))
 
-        for batch in tqdm(rel_loader, desc=description, disable=not self.progress_bar):
-            rel_metrics.append(self._eval_rel_step(model, state, batch))
+        for step, batch in tqdm(
+            enumerate(rel_loader), desc=description, disable=not self.progress_bar
+        ):
+            rel_metrics.append(self._eval_rel_step(model, state, batch, step))
 
         return collect_metrics(click_metrics), collect_metrics(rel_metrics)
 
     @partial(jit, static_argnums=(0, 1))
-    def _train_step(self, model, state, batch):
-        dropout_key = jax.random.fold_in(key=state.dropout_key, data=state.step)
+    def _train_step(self, model, state, batch, step):
+        rngs = self.generate_rngs(state, step)
 
         def loss_fn(params):
             y_predict, _, _ = model.apply(
                 params,
                 batch,
                 training=True,
-                rngs={"dropout": dropout_key},
+                rngs=rngs,
             )
 
             return self.criterion(y_predict, batch["click"], where=batch["mask"])
@@ -188,16 +197,20 @@ class Trainer:
         return state, loss
 
     @partial(jit, static_argnums=(0, 1))
-    def _eval_click_step(self, model, state, batch):
+    def _eval_click_step(self, model, state, batch, step):
+        rngs = self.generate_rngs(state, step)
+
         y_predict, rel_predict, _ = model.apply(
             state.params,
             batch,
             training=False,
-            rngs={"dropout": state.dropout_key},
+            rngs=rngs,
         )
 
         # This is an issue with rax's API: reduce_fn behaves differently for pointwise and listwise losses
-        reduce_fn = lambda a, where: a.reshape(len(a), -1).mean(axis=1, where=where.reshape(len(where), -1))
+        reduce_fn = lambda a, where: a.reshape(len(a), -1).mean(
+            axis=1, where=where.reshape(len(where), -1)
+        )
         loss = self.criterion(
             y_predict,
             batch["click"],
@@ -218,12 +231,14 @@ class Trainer:
         return results
 
     @partial(jit, static_argnums=(0, 1))
-    def _eval_rel_step(self, model, state, batch):
+    def _eval_rel_step(self, model, state, batch, step):
+        rngs = self.generate_rngs(state, step)
+
         y_predict = model.apply(
             state.params,
             batch,
             training=False,
-            rngs={"dropout": state.dropout_key},
+            rngs=rngs,
             method=model.predict_relevance,
         )
 
@@ -241,3 +256,11 @@ class Trainer:
             )
 
         return results
+
+    @staticmethod
+    def generate_rngs(state: TrainState, step: int) -> Dict[str, jax.Array]:
+        # Folding in the step number to generate a new random key.
+        dropout = jax.random.fold_in(key=state.dropout_key, data=step)
+        random_model = jax.random.fold_in(key=state.random_model_key, data=step)
+
+        return {"dropout": dropout, "random_model": random_model}
