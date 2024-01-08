@@ -147,7 +147,7 @@ def pairwise_debiasing(
     assert len(scores) == 3, "Scores must be a tuple of: (ratio_positive, ratio_negative, relevance)"
     """
     Implementation of the Pairwise Debiasing algorithm from Hu et al, 2019: https://dl.acm.org/doi/pdf/10.1145/3308558.3313447
-    Propensity ratios are trained via gradient descent while the ranker is trained using LambdaLoss (Burges et al., 2006)
+    Propensity ratios are trained via gradient descent while the ranker is trained using LambdaRank (Burges et al., 2006)
     """
     ratio_positive, ratio_negative, relevance = scores
     positive_weight = _get_normalized_weights(ratio_positive, where, max_weight, softmax = False)
