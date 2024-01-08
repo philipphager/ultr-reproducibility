@@ -5,7 +5,7 @@ import rax
 from flax import linen as nn
 from jax import Array
 from jax._src.lax.lax import stop_gradient
-from rax._src.types import LossFn
+from rax._src.types import LossFn, LambdaweightFn
 
 
 def regression_em(
@@ -133,3 +133,37 @@ def inverse_propensity_weighting(
     )
 
     return ipw_loss
+
+def pairwise_debiasing(
+    scores: Tuple[Array, Array, Array],
+    labels: Array,
+    where: Array,
+    loss_fn: LossFn = rax.pairwise_logistic_loss,
+    lambdaweight_fn: LambdaweightFn = rax.dcg_lambdaweight,
+    max_weight: float = 10,
+    p = 2,
+    reduce_fn: Optional[Callable] = jnp.mean,       
+):
+    assert len(scores) == 3, "Scores must be a tuple of: (ratio_positive, ratio_negative, relevance)"
+    """
+    Implementation of the Pairwise Debiasing algorithm from Hu et al, 2019: https://dl.acm.org/doi/pdf/10.1145/3308558.3313447
+    Propensity ratios are trained via gradient descent while the ranker is trained using LambdaLoss (Burges et al., 2006)
+    """
+    ratio_positive, ratio_negative, relevance = scores
+    positive_weight = _get_normalized_weights(ratio_positive, where, max_weight, softmax = False)
+    negative_weight = _get_normalized_weights(ratio_negative, where, max_weight, softmax = False)
+
+    positive_loss = loss_fn(stop_gradient(relevance), labels, where = where, 
+                            weights = -1 / (jnp.power(ratio_negative, 2) * negative_weight), 
+                            reduce_fn= reduce_fn) + p * jnp.linalg.norm(ratio_positive, p-1)
+    negative_loss = loss_fn(stop_gradient(relevance), labels, where = where, 
+                            weights = -1 / (jnp.power(ratio_negative, 2) * positive_weight), 
+                            reduce_fn= reduce_fn) + p * jnp.linalg.norm(ratio_positive, p-1)
+
+    unbiased_lambdaweight = lambda s,l: lambdaweight_fn(s, l, where = where, 
+                                                        weights = 1 / (positive_weight * negative_weight), 
+                                                        normalize = True)
+    relevance_loss = rax.pairwise_logistic_loss(relevance, labels, lambdaweight_fn=unbiased_lambdaweight, reduce_fn= reduce_fn)
+
+    return relevance_loss + positive_loss + negative_loss
+
