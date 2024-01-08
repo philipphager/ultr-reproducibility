@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - data: baidu
+  - data: uva
   - model: pbm
   - loss: listwise
   - user_const
