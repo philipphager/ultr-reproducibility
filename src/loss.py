@@ -152,7 +152,7 @@ def pairwise_debiasing(
     (ratio_positive, ratio_negative), relevance = scores
 
     examination_loss = loss_fn(stop_gradient(relevance), labels, where = where, 
-                            weights = 1 / (ratio_negative * ratio_negative), reduce_fn= reduce_fn) \
+                            weights = 1 / (ratio_positive * ratio_negative), reduce_fn= reduce_fn) \
                                 + jnp.power(jnp.linalg.norm(ratio_positive, p), p) \
                                 + jnp.power(jnp.linalg.norm(ratio_negative, p), p)
 
