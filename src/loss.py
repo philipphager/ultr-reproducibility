@@ -144,12 +144,12 @@ def pairwise_debiasing(
     p = 2,
     reduce_fn: Optional[Callable] = jnp.mean,       
 ):
-    assert len(scores) == 3, "Scores must be a tuple of: (ratio_positive, ratio_negative, relevance)"
+    assert (len(scores) == 2) and (len(scores[0]) == 2), "Scores must be a tuple of: ((ratio_positive, ratio_negative), relevance)"
     """
     Implementation of the Pairwise Debiasing algorithm from Hu et al, 2019: https://dl.acm.org/doi/pdf/10.1145/3308558.3313447
     Propensity ratios are trained via gradient descent while the ranker is trained using LambdaRank (Burges et al., 2006)
     """
-    ratio_positive, ratio_negative, relevance = scores
+    (ratio_positive, ratio_negative), relevance = scores
 
     examination_loss = loss_fn(stop_gradient(relevance), labels, where = where, 
                             weights = 1 / (ratio_negative * ratio_negative), reduce_fn= reduce_fn) \
@@ -158,10 +158,10 @@ def pairwise_debiasing(
 
     positive_weight = _get_normalized_weights(ratio_positive, where, max_weight, softmax = False)
     negative_weight = _get_normalized_weights(ratio_negative, where, max_weight, softmax = False)
-    unbiased_lambdaweight = lambda s,l: lambdaweight_fn(s, l, where = where, 
+    unbiased_lambdaweight = lambda s,l,where,segments,weights: lambdaweight_fn(s, l, where = where, 
                                                         weights = 1 / (positive_weight * negative_weight), 
                                                         normalize = True)
-    relevance_loss = loss_fn(relevance, labels, where = where, lambdaweight_fn=unbiased_lambdaweight, reduce_fn= reduce_fn)
+    relevance_loss = loss_fn(relevance, labels, where = where, lambdaweight_fn=unbiased_lambdaweight, reduce_fn=reduce_fn)
 
     return relevance_loss + examination_loss
 
