@@ -141,7 +141,7 @@ def pairwise_debiasing(
     loss_fn: LossFn = rax.pairwise_logistic_loss,
     lambdaweight_fn: LambdaweightFn = rax.dcg_lambdaweight,
     max_weight: float = 10,
-    p = 2,
+    p = 1,
     reduce_fn: Optional[Callable] = jnp.mean,       
 ):
     assert (len(scores) == 2) and (len(scores[0]) == 2), "Scores must be a tuple of: ((ratio_positive, ratio_negative), relevance)"
