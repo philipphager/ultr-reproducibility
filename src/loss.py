@@ -135,7 +135,7 @@ def inverse_propensity_weighting(
     return ipw_loss
 
 def pairwise_debiasing(
-    scores: Tuple[Array, Array, Array],
+    scores: Tuple[Tuple[Array, Array], Array],
     labels: Array,
     where: Array,
     loss_fn: LossFn = rax.pairwise_logistic_loss,
