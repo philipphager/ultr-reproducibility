@@ -150,20 +150,18 @@ def pairwise_debiasing(
     Propensity ratios are trained via gradient descent while the ranker is trained using LambdaRank (Burges et al., 2006)
     """
     ratio_positive, ratio_negative, relevance = scores
+
+    examination_loss = loss_fn(stop_gradient(relevance), labels, where = where, 
+                            weights = 1 / (ratio_negative * ratio_negative), reduce_fn= reduce_fn) \
+                                + jnp.power(jnp.linalg.norm(ratio_positive, p), p) \
+                                + jnp.power(jnp.linalg.norm(ratio_negative, p), p)
+
     positive_weight = _get_normalized_weights(ratio_positive, where, max_weight, softmax = False)
     negative_weight = _get_normalized_weights(ratio_negative, where, max_weight, softmax = False)
-
-    positive_loss = loss_fn(stop_gradient(relevance), labels, where = where, 
-                            weights = -1 / (jnp.power(ratio_negative, 2) * negative_weight), 
-                            reduce_fn= reduce_fn) + p * jnp.linalg.norm(ratio_positive, p-1)
-    negative_loss = loss_fn(stop_gradient(relevance), labels, where = where, 
-                            weights = -1 / (jnp.power(ratio_negative, 2) * positive_weight), 
-                            reduce_fn= reduce_fn) + p * jnp.linalg.norm(ratio_positive, p-1)
-
     unbiased_lambdaweight = lambda s,l: lambdaweight_fn(s, l, where = where, 
                                                         weights = 1 / (positive_weight * negative_weight), 
                                                         normalize = True)
-    relevance_loss = rax.pairwise_logistic_loss(relevance, labels, lambdaweight_fn=unbiased_lambdaweight, reduce_fn= reduce_fn)
+    relevance_loss = loss_fn(relevance, labels, where = where, lambdaweight_fn=unbiased_lambdaweight, reduce_fn= reduce_fn)
 
-    return relevance_loss + positive_loss + negative_loss
+    return relevance_loss + examination_loss
 
