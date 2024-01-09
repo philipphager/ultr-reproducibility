@@ -1,0 +1,2 @@
+_target_: rax.pairwise_logistic_loss
+_partial_: True

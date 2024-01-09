@@ -142,7 +142,8 @@ def pairwise_debiasing(
     lambdaweight_fn: LambdaweightFn = rax.dcg_lambdaweight,
     max_weight: float = 10,
     p = 1,
-    reduce_fn: Optional[Callable] = jnp.mean,       
+    debiasing : bool = True,      
+    reduce_fn: Optional[Callable] = jnp.mean, 
 ):
     assert (len(scores) == 2) and (len(scores[0]) == 2), "Scores must be a tuple of: ((ratio_positive, ratio_negative), relevance)"
     """
@@ -156,11 +157,14 @@ def pairwise_debiasing(
                                 + jnp.power(jnp.linalg.norm(ratio_positive, p), p) \
                                 + jnp.power(jnp.linalg.norm(ratio_negative, p), p)
 
-    positive_weight = _get_normalized_weights(ratio_positive, where, max_weight, softmax = False)
-    negative_weight = _get_normalized_weights(ratio_negative, where, max_weight, softmax = False)
-    unbiased_lambdaweight = lambda s,l,where,segments,weights: lambdaweight_fn(s, l, where = where, 
-                                                        weights = 1 / (positive_weight * negative_weight), 
-                                                        normalize = True)
+    if debiasing:
+        positive_weight = _get_normalized_weights(ratio_positive, where, max_weight, softmax = False)
+        negative_weight = _get_normalized_weights(ratio_negative, where, max_weight, softmax = False)
+        unbiased_lambdaweight = lambda s,l,where,segments,weights: lambdaweight_fn(s, l, where = where, 
+                                                            weights = 1 / (positive_weight * negative_weight), 
+                                                            normalize = True)
+    else:
+        unbiased_lambdaweight = lambdaweight_fn
     relevance_loss = loss_fn(relevance, labels, where = where, lambdaweight_fn=unbiased_lambdaweight, reduce_fn=reduce_fn)
 
     return relevance_loss + examination_loss
