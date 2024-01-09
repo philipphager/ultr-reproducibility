@@ -141,8 +141,7 @@ def pairwise_debiasing(
     loss_fn: LossFn = rax.pairwise_logistic_loss,
     lambdaweight_fn: LambdaweightFn = rax.dcg_lambdaweight,
     max_weight: float = 10,
-    p = 1,
-    debiasing : bool = True,      
+    p = 1, 
     reduce_fn: Optional[Callable] = jnp.mean, 
 ):
     assert (len(scores) == 2) and (len(scores[0]) == 2), "Scores must be a tuple of: ((ratio_positive, ratio_negative), relevance)"
@@ -152,19 +151,16 @@ def pairwise_debiasing(
     """
     (ratio_positive, ratio_negative), relevance = scores
 
-    examination_loss = loss_fn(stop_gradient(relevance), labels, where = where, 
-                            weights = 1 / (ratio_positive * ratio_negative), reduce_fn= reduce_fn) \
-                                + jnp.power(jnp.linalg.norm(ratio_positive, p), p) \
-                                + jnp.power(jnp.linalg.norm(ratio_negative, p), p)
+    weights = 1 / (ratio_positive * ratio_negative)
+    examination_loss = loss_fn(stop_gradient(relevance), labels, where = where, weights = weights)
+    examination_loss += jnp.power(jnp.linalg.norm(ratio_positive, p), p) 
+    examination_loss += jnp.power(jnp.linalg.norm(ratio_negative, p), p)
 
-    if debiasing:
-        positive_weight = _get_normalized_weights(ratio_positive, where, max_weight, softmax = False)
-        negative_weight = _get_normalized_weights(ratio_negative, where, max_weight, softmax = False)
-        unbiased_lambdaweight = lambda s,l,where,segments,weights: lambdaweight_fn(s, l, where = where, 
-                                                            weights = 1 / (positive_weight * negative_weight), 
-                                                            normalize = True)
-    else:
-        unbiased_lambdaweight = lambdaweight_fn
+    positive_weight = _get_normalized_weights(ratio_positive, where, max_weight, softmax = False)
+    negative_weight = _get_normalized_weights(ratio_negative, where, max_weight, softmax = False)
+    unbiased_lambdaweight = lambda s,l,where,segments,weights: lambdaweight_fn(s, l, where = where, 
+                                                        weights = 1 / (positive_weight * negative_weight), 
+                                                        normalize = True)
     relevance_loss = loss_fn(relevance, labels, where = where, lambdaweight_fn=unbiased_lambdaweight, reduce_fn=reduce_fn)
 
     return relevance_loss + examination_loss

@@ -33,10 +33,10 @@ class TowerCombination(enum.Enum):
 
 
 def combine_towers(
-    examination: Union[Array, Tuple[Array, Array]],
+    examination: Array,
     relevance: Array,
     combination: Union[TowerCombination, str],
-) -> Union[Array, Tuple[Array | Tuple[Array, Array], Array]]:
+) -> Union[Array, Tuple[Array, Array]]:
     combination = TowerCombination[combination]
 
     if combination == TowerCombination.NONE:

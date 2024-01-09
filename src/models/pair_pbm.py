@@ -1,4 +1,4 @@
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional
 
 from flax import linen as nn
 from jax import Array
@@ -22,8 +22,7 @@ class PairPositionBasedModel(nn.Module):
     relevance_dims: int
     relevance_layers: int
     relevance_dropout: float
-    tower_combination: TowerCombination
-    propensities_path: str | None = None
+    propensities_path: Optional[str] = None
 
     def setup(self) -> None:
         self.relevance_model = Tower(
@@ -55,10 +54,10 @@ class PairPositionBasedModel(nn.Module):
 
     def __call__(
         self, batch, training: bool = False
-    ) -> Tuple[Array | Tuple[Array | Tuple[Array, Array], Array], Array, Tuple[Array, Array]]:
+    ) -> Tuple[Tuple[Tuple[Array, Array], Array], Array, Tuple[Array, Array]]:
         relevance = self.predict_relevance(batch, training)
         examination = self.predict_examination(batch, training)
-        return combine_towers(examination, relevance, combination = "NONE"), relevance, examination
+        return (examination, relevance), relevance, examination
 
     def predict_relevance(self, batch, training: bool = False) -> Array:
         x = batch["query_document_embedding"]
