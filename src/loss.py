@@ -5,7 +5,7 @@ import rax
 from flax import linen as nn
 from jax import Array
 from jax._src.lax.lax import stop_gradient
-from rax._src.types import LossFn
+from rax._src.types import LossFn, LambdaweightFn
 
 
 def regression_em(
@@ -133,3 +133,35 @@ def inverse_propensity_weighting(
     )
 
     return ipw_loss
+
+def pairwise_debiasing(
+    scores: Tuple[Tuple[Array, Array], Array],
+    labels: Array,
+    where: Array,
+    loss_fn: LossFn = rax.pairwise_logistic_loss,
+    lambdaweight_fn: LambdaweightFn = rax.dcg_lambdaweight,
+    max_weight: float = 10,
+    p = 1, 
+    reduce_fn: Optional[Callable] = jnp.mean, 
+):
+    assert (len(scores) == 2) and (len(scores[0]) == 2), "Scores must be a tuple of: ((ratio_positive, ratio_negative), relevance)"
+    """
+    Implementation of the Pairwise Debiasing algorithm from Hu et al, 2019: https://dl.acm.org/doi/pdf/10.1145/3308558.3313447
+    Propensity ratios are trained via gradient descent while the ranker is trained using LambdaRank (Burges et al., 2006)
+    """
+    (ratio_positive, ratio_negative), relevance = scores
+
+    weights = 1 / (ratio_positive * ratio_negative)
+    examination_loss = loss_fn(stop_gradient(relevance), labels, where = where, weights = weights)
+    examination_loss += jnp.power(jnp.linalg.norm(ratio_positive, p), p) 
+    examination_loss += jnp.power(jnp.linalg.norm(ratio_negative, p), p)
+
+    positive_weight = _get_normalized_weights(ratio_positive, where, max_weight, softmax = False)
+    negative_weight = _get_normalized_weights(ratio_negative, where, max_weight, softmax = False)
+    unbiased_lambdaweight = lambda s,l,where,segments,weights: lambdaweight_fn(s, l, where = where, 
+                                                        weights = 1 / (positive_weight * negative_weight), 
+                                                        normalize = True)
+    relevance_loss = loss_fn(relevance, labels, where = where, lambdaweight_fn=unbiased_lambdaweight, reduce_fn=reduce_fn)
+
+    return relevance_loss + examination_loss
+
