@@ -7,18 +7,13 @@ from datasets import Dataset
 from sklearn.model_selection import train_test_split
 
 COLUMNS = {
-    "query_id": {"padded": False, "dtype": int},
-    "n": {"padded": False, "dtype": int},
-    "position": {"padded": True, "dtype": int},
     "query_document_embedding": {"padded": True, "dtype": float},
-    "media_type": {"padded": True, "dtype": int},
-    "displayed_time": {"padded": True, "dtype": int},
-    "serp_height": {"padded": True, "dtype": int},
-    "slipoff_count_after_click": {"padded": True, "dtype": int},
-    "frequency_bucket": {"padded": False, "dtype": int},
+    "position": {"padded": True, "dtype": int},
+    "mask": {"padded": True, "dtype": int},
+    "n": {"padded": False, "dtype": int},
     "click": {"padded": True, "dtype": int},
     "label": {"padded": True, "dtype": int},
-    "mask": {"padded": True, "dtype": int},
+    "frequency_bucket": {"padded": False, "dtype": int},
 }
 
 

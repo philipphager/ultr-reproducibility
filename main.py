@@ -15,7 +15,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader
 
-from src.data import collate_fn, hash_labels, discretize, random_split
+from src.data import collate_fn, random_split
 from src.log import get_wandb_run_name
 from src.trainer import Trainer, Stage
 from src.util import EarlyStopping, aggregate_metrics
@@ -33,37 +33,26 @@ logging.basicConfig(
 )
 
 
-def load_train_data(config: DictConfig):
-    name = "clicks-filtered" if config.data.filter_urls else "clicks"
-    train_dataset = load_dataset(
+def load_clicks(config: DictConfig, split: str):
+    dataset = load_dataset(
         config.data.name,
-        name=name,
-        split="train",
+        name="clicks",
+        split=split,
         cache_dir=config.cache_dir,
     )
-    train_dataset.set_format("numpy")
-
-    def encode_bias(batch):
-        batch["media_type"] = hash_labels(batch["media_type"], 10_000)
-        batch["displayed_time"] = discretize(batch["displayed_time"], 0, 128, 16)
-        batch["serp_height"] = discretize(batch["serp_height"], 0, 1024, 16)
-        batch["slipoff_count_after_click"] = discretize(
-            batch["slipoff_count_after_click"], 0, 10, 10
-        )
-        return batch
-
-    return train_dataset.map(encode_bias, num_proc=1)
+    dataset.set_format("numpy")
+    return dataset
 
 
-def load_val_data(config: DictConfig):
-    val_dataset = load_dataset(
+def load_annotations(config: DictConfig, split="test"):
+    dataset = load_dataset(
         config.data.name,
         name="annotations",
-        split="validation",
+        split=split,
         cache_dir=config.cache_dir,
     )
-    val_dataset.set_format("numpy")
-    return val_dataset
+    dataset.set_format("numpy")
+    return dataset
 
 
 @hydra.main(version_base="1.2", config_path="config", config_name="config")
@@ -81,57 +70,53 @@ def main(config: DictConfig):
             save_code=True,
         )
 
-    train_click_dataset = load_train_data(config)
-    train_click_dataset, test_click_dataset = random_split(
-        train_click_dataset,
-        shuffle=True,
-        random_state=config.random_state,
-        test_size=0.2,
-    )
-    val_click_dataset, test_click_dataset = random_split(
-        test_click_dataset,
+    train_clicks = load_clicks(config, split="train")
+    test_clicks = load_clicks(config, split="test")
+    test_rels = load_annotations(config)
+
+    val_clicks, test_clicks = random_split(
+        test_clicks,
         shuffle=True,
         random_state=config.random_state,
         test_size=0.5,
     )
 
-    val_rel_dataset = load_val_data(config)
-    val_rel_dataset, test_rel_dataset = random_split(
-        val_rel_dataset,
+    val_rels, test_rels = random_split(
+        test_rels,
         shuffle=True,
         random_state=config.random_state,
         test_size=0.5,
         stratify="frequency_bucket",
     )
 
-    train_loader = DataLoader(
-        train_click_dataset,
+    train_click_loader = DataLoader(
+        train_clicks,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
         num_workers=config.num_workers,
         pin_memory=True,
     )
     val_click_loader = DataLoader(
-        val_click_dataset,
-        collate_fn=collate_fn,
-        batch_size=config.batch_size,
-        num_workers=config.num_workers,
-        pin_memory=True,
-    )
-    val_rel_loader = DataLoader(
-        val_rel_dataset,
+        val_clicks,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
         num_workers=config.num_workers,
         pin_memory=True,
     )
     test_click_loader = DataLoader(
-        test_click_dataset,
+        test_clicks,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
     )
+    val_rel_loader = DataLoader(
+        val_rels,
+        collate_fn=collate_fn,
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        pin_memory=True,
+    )
     test_rel_loader = DataLoader(
-        test_rel_dataset,
+        test_rels,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
     )
@@ -162,7 +147,7 @@ def main(config: DictConfig):
     )
     best_state, history_df = trainer.train(
         model,
-        train_loader,
+        train_click_loader,
         val_click_loader,
         val_rel_loader,
     )
