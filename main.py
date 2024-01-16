@@ -5,6 +5,7 @@ import hydra
 import jax
 import optax
 import pyarrow
+import pyarrow_hotfix
 import rax
 import torch
 import wandb
@@ -19,6 +20,8 @@ from src.data import collate_fn, random_split
 from src.log import get_wandb_run_name
 from src.trainer import Trainer, Stage
 from src.util import EarlyStopping, aggregate_metrics
+
+pyarrow_hotfix.uninstall()
 
 logging.basicConfig(
     level="INFO",
