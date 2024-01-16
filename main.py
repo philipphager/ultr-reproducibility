@@ -55,6 +55,12 @@ def load_clicks(config: DictConfig, split: str):
 
 
 def load_annotations(config: DictConfig, split="test"):
+    encode_query = LabelEncoder()
+
+    def preprocess(batch):
+        batch["query_id"] = encode_query(batch["query_id"])
+        return batch
+
     dataset = load_dataset(
         config.data.name,
         name="annotations",
@@ -62,7 +68,8 @@ def load_annotations(config: DictConfig, split="test"):
         cache_dir=config.cache_dir,
     )
     dataset.set_format("numpy")
-    return dataset
+
+    return dataset.map(preprocess)
 
 
 @hydra.main(version_base="1.2", config_path="config", config_name="config")
