@@ -7,6 +7,7 @@ from datasets import Dataset
 from sklearn.model_selection import train_test_split
 
 COLUMNS = {
+    "query_id": {"padded": False, "dtype": int},
     "query_document_embedding": {"padded": True, "dtype": float},
     "position": {"padded": True, "dtype": int},
     "mask": {"padded": True, "dtype": int},
@@ -106,3 +107,19 @@ def discretize(x: np.ndarray, low: float, high: float, buckets: int):
     """
     boundaries = np.linspace(low, high, num=buckets + 1)
     return np.digitize(x, boundaries, right=False)
+
+
+class LabelEncoder:
+    def __init__(self):
+        self.value2id = {}
+        self.max_id = 0
+
+    def __call__(self, x):
+        if x not in self.value2id:
+            self.value2id[x] = self.max_id
+            self.max_id += 1
+
+        return self.value2id[x]
+
+    def __len__(self):
+        return len(self.value2id)

@@ -16,7 +16,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 from torch.utils.data import DataLoader
 
-from src.data import collate_fn, random_split
+from src.data import collate_fn, random_split, LabelEncoder
 from src.log import get_wandb_run_name
 from src.trainer import Trainer, Stage
 from src.util import EarlyStopping, aggregate_metrics
@@ -37,6 +37,12 @@ logging.basicConfig(
 
 
 def load_clicks(config: DictConfig, split: str):
+    encode_query = LabelEncoder()
+
+    def preprocess(batch):
+        batch["query_id"] = encode_query(batch["query_id"])
+        return batch
+
     dataset = load_dataset(
         config.data.name,
         name="clicks",
@@ -44,7 +50,8 @@ def load_clicks(config: DictConfig, split: str):
         cache_dir=config.cache_dir,
     )
     dataset.set_format("numpy")
-    return dataset
+
+    return dataset.map(preprocess)
 
 
 def load_annotations(config: DictConfig, split="test"):
