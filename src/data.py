@@ -30,10 +30,9 @@ def collate_fn(samples: List[Dict[str, np.ndarray]]):
 
     for sample in samples:
         for column, x in sample.items():
-            # Fix position feature (is apparently not strictly increasing in dataset:
-            x = np.arange(sample["n"]) + 1 if column == "position" else x
-            x = pad(x, max_n) if COLUMNS[column]["padded"] else x
-            batch[column].append(x)
+            if column in COLUMNS:
+                x = pad(x, max_n) if COLUMNS[column]["padded"] else x
+                batch[column].append(x)
 
         batch["mask"].append(pad(np.ones(sample["n"]), max_n))
 
