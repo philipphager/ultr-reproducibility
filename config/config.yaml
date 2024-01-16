@@ -1,8 +1,8 @@
 defaults:
   - _self_
   - data: uva-retro-mae
-  - model: naive
-  - loss: pointwise
+  - model: pbm
+  - loss: listwise
   - user_const
 
 random_state: 381
