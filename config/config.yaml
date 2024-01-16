@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - data: uva
+  - data: uva-retro-mae
   - model: pbm
   - loss: listwise
   - user_const
