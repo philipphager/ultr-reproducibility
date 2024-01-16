@@ -112,7 +112,7 @@ def discretize(x: np.ndarray, low: float, high: float, buckets: int):
 class LabelEncoder:
     def __init__(self):
         self.value2id = {}
-        self.max_id = 0
+        self.max_id = 1
 
     def __call__(self, x):
         if x not in self.value2id:
