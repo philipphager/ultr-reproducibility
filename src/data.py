@@ -8,17 +8,13 @@ from sklearn.model_selection import train_test_split
 
 COLUMNS = {
     "query_id": {"padded": False, "dtype": int},
-    "n": {"padded": False, "dtype": int},
-    "position": {"padded": True, "dtype": int},
     "query_document_embedding": {"padded": True, "dtype": float},
-    "media_type": {"padded": True, "dtype": int},
-    "displayed_time": {"padded": True, "dtype": int},
-    "serp_height": {"padded": True, "dtype": int},
-    "slipoff_count_after_click": {"padded": True, "dtype": int},
-    "frequency_bucket": {"padded": False, "dtype": int},
+    "position": {"padded": True, "dtype": int},
+    "mask": {"padded": True, "dtype": int},
+    "n": {"padded": False, "dtype": int},
     "click": {"padded": True, "dtype": int},
     "label": {"padded": True, "dtype": int},
-    "mask": {"padded": True, "dtype": int},
+    "frequency_bucket": {"padded": False, "dtype": int},
 }
 
 
@@ -35,10 +31,9 @@ def collate_fn(samples: List[Dict[str, np.ndarray]]):
 
     for sample in samples:
         for column, x in sample.items():
-            # Fix position feature (is apparently not strictly increasing in dataset:
-            x = np.arange(sample["n"]) + 1 if column == "position" else x
-            x = pad(x, max_n) if COLUMNS[column]["padded"] else x
-            batch[column].append(x)
+            if column in COLUMNS:
+                x = pad(x, max_n) if COLUMNS[column]["padded"] else x
+                batch[column].append(x)
 
         batch["mask"].append(pad(np.ones(sample["n"]), max_n))
 
@@ -112,3 +107,19 @@ def discretize(x: np.ndarray, low: float, high: float, buckets: int):
     """
     boundaries = np.linspace(low, high, num=buckets + 1)
     return np.digitize(x, boundaries, right=False)
+
+
+class LabelEncoder:
+    def __init__(self):
+        self.value2id = {}
+        self.max_id = 1
+
+    def __call__(self, x):
+        if x not in self.value2id:
+            self.value2id[x] = self.max_id
+            self.max_id += 1
+
+        return self.value2id[x]
+
+    def __len__(self):
+        return len(self.value2id)
