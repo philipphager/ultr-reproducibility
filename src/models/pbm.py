@@ -1,58 +1,63 @@
-from typing import Union, Tuple, Optional
+from typing import Optional, Callable, Dict
 
 from flax import linen as nn
+from flax.struct import dataclass
 from jax import Array
-import jax.numpy as jnp
-import numpy as np
 
-from src.models.base import Tower
-from src.models.two_tower import TowerCombination, combine_towers, BiasTower
+from src.models.base import (
+    RelevanceModel,
+    PretrainedExaminationModel,
+    ExaminationModel,
+)
+
+
+@dataclass
+class PBMConfig:
+    loss_fn: Callable
+    dims: int
+    layers: int
+    dropout: float
+    positions: int
+    propensity_path: Optional[str] = None
+
+
+@dataclass
+class PBMOutput:
+    loss: Array
+    click: Array
+    examination: Array
+    relevance: Array
 
 
 class PositionBasedModel(nn.Module):
-    """
-    With document d, query q, at position k:
-    P(C = 1 | d, q, k) = P(E = 1 | k) x P(R = 1 | d, q)
-    """
+    config: PBMConfig
 
-    bias_dims: int
-    bias_layers: int
-    bias_dropout: float
-    relevance_dims: int
-    relevance_layers: int
-    relevance_dropout: float
-    tower_combination: TowerCombination
-    propensities_path: Optional[str] = None
+    def setup(self):
+        self.relevance_model = RelevanceModel(self.config)
 
-    def setup(self) -> None:
-        self.relevance_model = Tower(
-            dims=self.relevance_dims,
-            layers=self.relevance_layers,
-            dropout=self.relevance_dropout,
-        )
-        if self.propensities_path is None:
-            self.bias_model = BiasTower(
-                dims=self.bias_dims,
-                layers=self.bias_layers,
-                dropout=self.bias_dropout,
-                embeddings={
-                    "position": nn.Embed(num_embeddings=50, features=8),
-                },
+        if self.config.propensity_path is not None:
+            self.examination_model = PretrainedExaminationModel(
+                file=self.config.propensity_path
             )
         else:
-            propensities = jnp.asarray(np.genfromtxt(self.propensities_path, delimiter=',')[1])
-            self.bias_model = lambda batch: propensities[batch["position"]]
+            self.examination_model = ExaminationModel(positions=self.config.positions)
 
-    def __call__(
-        self, batch, training: bool = False
-) -> Tuple[Union[Array, Tuple[Array, Array]], Array, Array]:
-        relevance = self.predict_relevance(batch, training)
-        examination = self.predict_examination(batch, training)
-        return combine_towers(examination, relevance, self.tower_combination), relevance, examination
+    def __call__(self, batch: Dict, training: bool) -> PBMOutput:
+        examination = self.predict_examination(batch, training=training)
+        relevance = self.predict_relevance(batch, training=training)
+        click = examination + relevance
 
-    def predict_relevance(self, batch, training: bool = False) -> Array:
-        x = batch["query_document_embedding"]
-        return self.relevance_model(x, training).squeeze()
+        loss = self.config.loss_fn(click, batch["click"], where=batch["mask"])
 
-    def predict_examination(self, batch, training: bool = False) -> Array:
-        return self.bias_model(batch).squeeze()
+        return PBMOutput(
+            loss=loss,
+            click=click,
+            examination=examination,
+            relevance=relevance,
+        )
+
+    def predict_examination(self, batch: Dict, training: bool = False) -> Array:
+        return self.examination_model(batch, training=training)
+
+    def predict_relevance(self, batch: Dict, training: bool = False) -> Array:
+        return self.relevance_model(batch, training=training)
