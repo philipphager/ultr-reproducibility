@@ -4,7 +4,6 @@ from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
 
-from src.loss import load_loss
 from src.models.base import RelevanceModel
 
 
@@ -28,7 +27,6 @@ class NaiveModel(nn.Module):
 
     def setup(self):
         self.model = RelevanceModel(self.config)
-        self.loss_fn = load_loss(self.config.loss)
 
     def __call__(self, batch: Dict, training: bool) -> NaiveOutput:
         relevance = self.predict_relevance(batch, training=training)
