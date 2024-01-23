@@ -1,5 +1,6 @@
 from typing import Optional, Callable, Dict
 
+import rax
 from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
@@ -13,12 +14,12 @@ from src.models.base import (
 
 @dataclass
 class RegressionEMConfig:
-    loss_fn: Callable
     dims: int
     layers: int
     dropout: float
     positions: int
     propensity_path: Optional[str] = None
+    loss_fn: Callable = rax.pointwise_sigmoid_loss
 
 
 @dataclass
@@ -47,7 +48,7 @@ class RegressionEM(nn.Module):
             relevance=relevance,
             labels=batch["click"],
             where=batch["mask"],
-            loss_fn=self.config.loss_fn
+            loss_fn=self.config.loss_fn,
         )
 
         return RegressionEMOutput(
