@@ -33,15 +33,16 @@ class PositionBasedModel(nn.Module):
     config: PBMConfig
 
     def setup(self):
-        self.relevance_model = RelevanceModel(self.config)
+        config = self.config
+        self.relevance_model = RelevanceModel(config)
 
-        if self.config.propensity_path is not None:
+        if config.propensity_path is not None:
             self.examination_model = PretrainedExaminationModel(
-                file=self.config.propensity_path,
+                file=config.propensity_path,
             )
         else:
             self.examination_model = ExaminationModel(
-                positions=self.config.positions,
+                positions=config.positions,
             )
 
     def __call__(self, batch: Dict, training: bool) -> PBMOutput:
