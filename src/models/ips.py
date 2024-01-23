@@ -47,6 +47,7 @@ class IPSModel(nn.Module):
             relevance=relevance,
             labels=batch["click"],
             where=batch["mask"],
+            loss_fn=self.config.loss_fn,
             max_weight=self.max_weight,
         )
 
