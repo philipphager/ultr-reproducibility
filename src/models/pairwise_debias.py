@@ -4,12 +4,14 @@ import rax
 from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
+from rax._src.types import ReduceFn
 
 from src.loss import pairwise_debiasing
 from src.models.base import (
     RelevanceModel,
     ExaminationModel,
 )
+from src.util import reduce_per_query
 
 
 @dataclass
@@ -22,6 +24,7 @@ class PairwiseDebiasConfig:
     l_norm: int = 1
     loss_fn: Callable = rax.pairwise_logistic_loss
     lambdaweight_fn: Callable = rax.dcg_lambdaweight
+    reduce_fn: ReduceFn = reduce_per_query
 
 
 @dataclass
@@ -60,6 +63,7 @@ class PairwiseDebiasModel(nn.Module):
             labels=batch["click"],
             where=batch["mask"],
             loss_fn=self.config.loss_fn,
+            reduce_fn=self.config.reduce_fn,
             lambdaweight_fn=self.config.lambdaweight_fn,
             max_weight=self.max_weight,
             l_norm=self.config.l_norm,

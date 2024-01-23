@@ -4,8 +4,10 @@ import rax
 from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
+from rax._src.types import ReduceFn
 
 from src.models.base import RelevanceModel
+from src.util import reduce_per_query
 
 
 @dataclass
@@ -14,6 +16,7 @@ class NaiveConfig:
     layers: int
     dropout: float
     loss_fn: Callable = rax.pointwise_sigmoid_loss
+    reduce_fn: ReduceFn = reduce_per_query
 
 
 @dataclass
@@ -31,7 +34,13 @@ class NaiveModel(nn.Module):
 
     def __call__(self, batch: Dict, training: bool) -> NaiveOutput:
         relevance = self.predict_relevance(batch, training=training)
-        loss = self.config.loss_fn(relevance, batch["click"], where=batch["mask"])
+
+        loss = self.config.loss_fn(
+            relevance,
+            batch["click"],
+            where=batch["mask"],
+            reduce_fn=self.config.reduce_fn,
+        )
 
         return NaiveOutput(
             loss=loss,

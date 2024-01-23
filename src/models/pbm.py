@@ -4,12 +4,14 @@ import rax
 from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
+from rax._src.types import ReduceFn
 
 from src.models.base import (
     RelevanceModel,
     PretrainedExaminationModel,
     ExaminationModel,
 )
+from src.util import reduce_per_query
 
 
 @dataclass
@@ -20,6 +22,7 @@ class PBMConfig:
     positions: int
     propensity_path: Optional[str] = None
     loss_fn: Callable = rax.pointwise_sigmoid_loss
+    reduce_fn: ReduceFn = reduce_per_query
 
 
 @dataclass
@@ -58,6 +61,7 @@ class PositionBasedModel(nn.Module):
             click=click,
             examination=examination,
             relevance=relevance,
+            reduce_fn=self.config.reduce_fn,
         )
 
     def predict_examination(self, batch: Dict, training: bool = False) -> Array:

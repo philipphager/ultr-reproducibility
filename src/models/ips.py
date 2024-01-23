@@ -4,12 +4,14 @@ import rax
 from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
+from rax._src.types import ReduceFn
 
 from src.loss import inverse_propensity_weighting
 from src.models.base import (
     RelevanceModel,
     PretrainedExaminationModel,
 )
+from src.util import reduce_per_query
 
 
 @dataclass
@@ -20,6 +22,7 @@ class IPSConfig:
     clip: float
     propensity_path: str
     loss_fn: Callable = rax.softmax_loss
+    reduce_fn: ReduceFn = reduce_per_query
 
 
 @dataclass
@@ -48,6 +51,7 @@ class IPSModel(nn.Module):
             labels=batch["click"],
             where=batch["mask"],
             loss_fn=self.config.loss_fn,
+            reduce_fn=self.config.reduce_fn,
             max_weight=self.max_weight,
         )
 
