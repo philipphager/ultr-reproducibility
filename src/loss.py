@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, Callable
+from typing import Optional, Callable
 
 import jax.numpy as jnp
 import rax
@@ -9,7 +9,8 @@ from rax._src.types import LossFn, LambdaweightFn
 
 
 def regression_em(
-    scores: Tuple[Array, Array],
+    examination: Array,
+    relevance: Array,
     labels: Array,
     where: Array,
     loss_fn: LossFn = rax.pointwise_sigmoid_loss,
@@ -20,8 +21,6 @@ def regression_em(
     Numerically stable version as adopted from the Tensorflow Ranking library:
     https://github.com/tensorflow/ranking/blob/c46cede726fd453e0aaa6097871d23dc8e465bdc/tensorflow_ranking/python/losses_impl.py#L1324
     """
-    assert len(scores) == 2, "Scores must be a tuple of: (examination, relevance)"
-    examination, relevance = scores
     examination_posterior = _get_posterior(examination, relevance, labels)
     relevance_posterior = _get_posterior(relevance, examination, labels)
 
