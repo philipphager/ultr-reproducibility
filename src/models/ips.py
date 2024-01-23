@@ -4,6 +4,7 @@ from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
 
+from src.loss import inverse_propensity_weighting
 from src.models.base import (
     RelevanceModel,
     PretrainedExaminationModel,
@@ -40,8 +41,9 @@ class IPSModel(nn.Module):
         examination = self.predict_examination(batch, training=training)
         relevance = self.predict_relevance(batch, training=training)
 
-        loss = self.config.loss_fn(
-            scores=(examination, relevance),
+        loss = inverse_propensity_weighting(
+            examination=examination,
+            relevance=relevance,
             labels=batch["click"],
             where=batch["mask"],
             max_weight=self.max_weight,
