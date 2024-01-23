@@ -1,5 +1,6 @@
-from typing import Dict
+from typing import Dict, Callable
 
+import rax
 from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
@@ -18,6 +19,9 @@ class PairwiseDebiasConfig:
     dropout: float
     positions: int
     clip: float
+    l_norm: int = 1
+    loss_fn: Callable = rax.pairwise_logistic_loss
+    lambdaweight_fn: Callable = rax.dcg_lambdaweight
 
 
 @dataclass
@@ -55,7 +59,10 @@ class PairwiseDebiasModel(nn.Module):
             relevance=relevance,
             labels=batch["click"],
             where=batch["mask"],
-            max_weight=self.max_weight
+            loss_fn=self.config.loss_fn,
+            lambdaweight_fn=self.config.lambdaweight_fn,
+            max_weight=self.max_weight,
+            l_norm=self.config.l_norm,
         )
 
         return PairwiseDebiasOutput(
