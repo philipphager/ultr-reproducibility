@@ -1,27 +1,44 @@
-from typing import Tuple
+from typing import Dict, Callable
 
 from flax import linen as nn
+from flax.struct import dataclass
 from jax import Array
 
-from src.models.base import Tower
+from src.loss import load_loss
+from src.models.base import RelevanceModel
+
+
+@dataclass
+class NaiveConfig:
+    loss_fn: Callable
+    dims: int
+    layers: int
+    dropout: float
+
+
+@dataclass
+class NaiveOutput:
+    loss: Array
+    click: Array
+    relevance: Array
 
 
 class NaiveModel(nn.Module):
-    relevance_dims: int
-    relevance_layers: int
-    relevance_dropout: float
+    config: NaiveConfig
 
-    def setup(self) -> None:
-        self.relevance_model = Tower(
-            dims=self.relevance_dims,
-            layers=self.relevance_layers,
-            dropout=self.relevance_dropout,
+    def setup(self):
+        self.model = RelevanceModel(self.config)
+        self.loss_fn = load_loss(self.config.loss)
+
+    def __call__(self, batch: Dict, training: bool) -> NaiveOutput:
+        relevance = self.predict_relevance(batch, training=training)
+        loss = self.config.loss_fn(relevance, batch["click"], where=batch["mask"])
+
+        return NaiveOutput(
+            loss=loss,
+            click=relevance,
+            relevance=relevance,
         )
 
-    def __call__(self, batch, training: bool = False) -> Tuple[Array, Array, None]:
-        relevance = self.predict_relevance(batch, training)
-        return relevance, relevance, None
-
-    def predict_relevance(self, batch, training: bool = False) -> Array:
-        x = batch["query_document_embedding"]
-        return self.relevance_model(x, training).squeeze()
+    def predict_relevance(self, batch: Dict, training: bool = False) -> Array:
+        return self.model(batch, training=training)
