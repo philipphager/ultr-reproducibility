@@ -25,8 +25,12 @@ def regression_em(
     examination_posterior = _get_posterior(examination, relevance, labels)
     relevance_posterior = _get_posterior(relevance, examination, labels)
 
-    examination_loss = loss_fn(examination, examination_posterior, where=where, reduce_fn=reduce_fn)
-    relevance_loss = loss_fn(relevance, relevance_posterior, where=where, reduce_fn=reduce_fn)
+    examination_loss = loss_fn(
+        examination, examination_posterior, where=where, reduce_fn=reduce_fn
+    )
+    relevance_loss = loss_fn(
+        relevance, relevance_posterior, where=where, reduce_fn=reduce_fn
+    )
 
     return examination_loss + relevance_loss
 
@@ -38,7 +42,8 @@ def _get_posterior(x: Array, y: Array, labels: Array) -> Array:
 
 
 def dual_learning_algorithm(
-    scores: Tuple[Array, Array],
+    examination: Array,
+    relevance: Array,
     labels: Array,
     where: Array,
     loss_fn: LossFn = rax.softmax_loss,
@@ -48,10 +53,12 @@ def dual_learning_algorithm(
     """
     Implementation of the Dual Learning Algorithm from Ai et al, 2018: https://arxiv.org/pdf/1804.05938.pdf
     """
-    assert len(scores) == 2, "Scores must be a tuple of: (examination, relevance)"
-    examination, relevance = scores
-    examination_weights = _get_normalized_weights(examination, where, max_weight, softmax = True)
-    relevance_weights = _get_normalized_weights(relevance, where, max_weight, softmax = True)
+    examination_weights = _get_normalized_weights(
+        examination, where, max_weight, softmax=True
+    )
+    relevance_weights = _get_normalized_weights(
+        relevance, where, max_weight, softmax=True
+    )
 
     examination_loss = loss_fn(
         examination,
@@ -97,6 +104,7 @@ def _get_normalized_weights(
 
     return stop_gradient(weights)
 
+
 def behavior_cloning(
     scores: Array,
     labels: Array,
@@ -107,24 +115,30 @@ def behavior_cloning(
     """
     Behavior cloning, i.e., replication of the logging policy, by learning to predict the observed position of the item at hand.
     """
-    return loss_fn(scores, 
-                jnp.broadcast_to(jnp.power( 1 / jnp.arange(1, labels.shape[1]+1), 2), labels.shape),
-                where=where,
-                reduce_fn=reduce_fn,)
+    return loss_fn(
+        scores,
+        jnp.broadcast_to(
+            jnp.power(1 / jnp.arange(1, labels.shape[1] + 1), 2), labels.shape
+        ),
+        where=where,
+        reduce_fn=reduce_fn,
+    )
+
 
 def inverse_propensity_weighting(
-    scores: Tuple[Array, Array],
+    examination: Array,
+    relevance: Array,
     labels: Array,
     where: Array,
     loss_fn: LossFn = rax.softmax_loss,
     max_weight: float = 10,
     reduce_fn: Optional[Callable] = jnp.mean,
 ):
-    assert len(scores) == 2, "Scores must be a tuple of: (examination, relevance)"
-    examination, relevance = scores
-    examination_weights = _get_normalized_weights(examination, where, max_weight, softmax = False)
+    examination_weights = _get_normalized_weights(
+        examination, where, max_weight, softmax=False
+    )
 
-    ipw_loss = loss_fn(
+    return loss_fn(
         relevance,
         labels,
         where=where,
@@ -132,36 +146,49 @@ def inverse_propensity_weighting(
         reduce_fn=reduce_fn,
     )
 
-    return ipw_loss
 
 def pairwise_debiasing(
-    scores: Tuple[Tuple[Array, Array], Array],
+    ratio_positive: Array,
+    ratio_negative: Array,
+    relevance: Array,
     labels: Array,
     where: Array,
     loss_fn: LossFn = rax.pairwise_logistic_loss,
     lambdaweight_fn: LambdaweightFn = rax.dcg_lambdaweight,
     max_weight: float = 10,
-    p = 1, 
-    reduce_fn: Optional[Callable] = jnp.mean, 
+    l_norm=1,
+    reduce_fn: Optional[Callable] = jnp.mean,
 ):
-    assert (len(scores) == 2) and (len(scores[0]) == 2), "Scores must be a tuple of: ((ratio_positive, ratio_negative), relevance)"
     """
     Implementation of the Pairwise Debiasing algorithm from Hu et al, 2019: https://dl.acm.org/doi/pdf/10.1145/3308558.3313447
     Propensity ratios are trained via gradient descent while the ranker is trained using LambdaRank (Burges et al., 2006)
     """
-    (ratio_positive, ratio_negative), relevance = scores
-
     weights = 1 / (ratio_positive * ratio_negative)
-    examination_loss = loss_fn(stop_gradient(relevance), labels, where = where, weights = weights)
-    examination_loss += jnp.power(jnp.linalg.norm(ratio_positive, p), p) 
-    examination_loss += jnp.power(jnp.linalg.norm(ratio_negative, p), p)
+    examination_loss = loss_fn(
+        stop_gradient(relevance), labels, where=where, weights=weights
+    )
+    examination_loss += jnp.power(jnp.linalg.norm(ratio_positive, l_norm), l_norm)
+    examination_loss += jnp.power(jnp.linalg.norm(ratio_negative, l_norm), l_norm)
 
-    positive_weight = _get_normalized_weights(ratio_positive, where, max_weight, softmax = False)
-    negative_weight = _get_normalized_weights(ratio_negative, where, max_weight, softmax = False)
-    unbiased_lambdaweight = lambda s,l,where,segments,weights: lambdaweight_fn(s, l, where = where, 
-                                                        weights = 1 / (positive_weight * negative_weight), 
-                                                        normalize = True)
-    relevance_loss = loss_fn(relevance, labels, where = where, lambdaweight_fn=unbiased_lambdaweight, reduce_fn=reduce_fn)
+    positive_weight = _get_normalized_weights(
+        ratio_positive, where, max_weight, softmax=False
+    )
+    negative_weight = _get_normalized_weights(
+        ratio_negative, where, max_weight, softmax=False
+    )
+
+    def unbiased_lambdaweight_fn(scores, labels, where, segments, weights):
+        weights = 1 / (positive_weight * negative_weight)
+        return lambdaweight_fn(
+            scores, labels, where=where, weights=weights, normalize=True
+        )
+
+    relevance_loss = loss_fn(
+        relevance,
+        labels,
+        where=where,
+        lambdaweight_fn=unbiased_lambdaweight_fn,
+        reduce_fn=reduce_fn,
+    )
 
     return relevance_loss + examination_loss
-
