@@ -17,6 +17,7 @@ class PairwiseDebiasConfig:
     layers: int
     dropout: float
     positions: int
+    clip: float
 
 
 @dataclass
@@ -41,6 +42,7 @@ class PairwiseDebiasModel(nn.Module):
         self.relevance_model = RelevanceModel(config)
         self.bias_model_positive = ExaminationModel(positions=config.positions)
         self.bias_model_negative = ExaminationModel(positions=config.positions)
+        self.max_weight = 1 / config.clip
 
     def __call__(self, batch: Dict, training: bool) -> PairwiseDebiasOutput:
         relevance = self.predict_relevance(batch, training=training)
@@ -53,6 +55,7 @@ class PairwiseDebiasModel(nn.Module):
             relevance=relevance,
             labels=batch["click"],
             where=batch["mask"],
+            max_weight=self.max_weight
         )
 
         return PairwiseDebiasOutput(
