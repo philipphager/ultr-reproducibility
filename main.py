@@ -1,39 +1,23 @@
-import logging
 from functools import partial
 
 import hydra
-import jax
 import optax
-import pyarrow
 import pyarrow_hotfix
 import rax
 import torch
 import wandb
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
+from flax.training.early_stopping import EarlyStopping
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
-from rich.console import Console
-from rich.logging import RichHandler
 from torch.utils.data import DataLoader
 
 from src.data import collate_fn, random_split, LabelEncoder
 from src.log import get_wandb_run_name
+from src.metrics import negative_log_likelihood
 from src.trainer import Trainer
-from src.util import EarlyStopping
 
 pyarrow_hotfix.uninstall()
-
-logging.basicConfig(
-    level="INFO",
-    format="%(message)s",
-    datefmt="[%X]",
-    handlers=[
-        RichHandler(
-            tracebacks_suppress=[jax, pyarrow],
-            console=Console(width=800),
-        )
-    ],
-)
 
 
 def load_clicks(config: DictConfig, split: str):
@@ -72,6 +56,16 @@ def load_annotations(config: DictConfig, split="test"):
     return dataset.map(preprocess)
 
 
+def get_loader(config: DictConfig, dataset: Dataset) -> DataLoader:
+    return DataLoader(
+        dataset,
+        collate_fn=collate_fn,
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        pin_memory=True,
+    )
+
+
 @hydra.main(version_base="1.2", config_path="config", config_name="config")
 def main(config: DictConfig):
     torch.manual_seed(config.random_state)
@@ -89,7 +83,23 @@ def main(config: DictConfig):
 
     train_clicks = load_clicks(config, split="train")
     test_clicks = load_clicks(config, split="test")
-    test_rels = load_annotations(config)
+    annotations = load_annotations(config)
+
+    ### FIXME REMOVE
+    train_clicks, _ = random_split(
+        train_clicks,
+        shuffle=True,
+        random_state=config.random_state,
+        test_size=0.99,
+    )
+
+    test_clicks, _ = random_split(
+        test_clicks,
+        shuffle=True,
+        random_state=config.random_state,
+        test_size=0.99,
+    )
+    ### FIXME REMOVE
 
     val_clicks, test_clicks = random_split(
         test_clicks,
@@ -97,45 +107,30 @@ def main(config: DictConfig):
         random_state=config.random_state,
         test_size=0.5,
     )
-    train_loader = DataLoader(
-        train_clicks,
-        collate_fn=collate_fn,
-        batch_size=config.batch_size,
-        num_workers=config.num_workers,
-        pin_memory=True,
-    )
-    val_loader = DataLoader(
-        val_clicks,
-        collate_fn=collate_fn,
-        batch_size=config.batch_size,
-        num_workers=config.num_workers,
-        pin_memory=True,
-    )
-    test_loader = DataLoader(
-        test_rels,
-        collate_fn=collate_fn,
-        batch_size=config.batch_size,
-        num_workers=config.num_workers,
-    )
 
-    metric_fns = {
-        "ndcg@10": partial(rax.ndcg_metric, topn=10),
-        "mrr@10": partial(rax.mrr_metric, topn=10),
-        "dcg@01": partial(rax.dcg_metric, topn=1),
-        "dcg@03": partial(rax.dcg_metric, topn=3),
-        "dcg@05": partial(rax.dcg_metric, topn=5),
-        "dcg@10": partial(rax.dcg_metric, topn=10),
-    }
+    train_loader = get_loader(config, train_clicks)
+    val_loader = get_loader(config, val_clicks)
+    test_click_loader = get_loader(config, test_clicks)
+    test_rel_loader = get_loader(config, annotations)
 
     model = instantiate(config.model)
+
     trainer = Trainer(
         random_state=config.random_state,
         optimizer=optax.adam(learning_rate=config.lr),
+        metric_fns={
+            "ndcg@10": partial(rax.ndcg_metric, topn=10),
+            "mrr@10": partial(rax.mrr_metric, topn=10),
+            "dcg@01": partial(rax.dcg_metric, topn=1),
+            "dcg@03": partial(rax.dcg_metric, topn=3),
+            "dcg@05": partial(rax.dcg_metric, topn=5),
+            "dcg@10": partial(rax.dcg_metric, topn=10),
+        },
+        click_metric_fns={
+            "nll": negative_log_likelihood
+        },
         epochs=config.max_epochs,
-        early_stopping=EarlyStopping(
-            metric=config.es_metric,
-            patience=config.es_patience,
-        ),
+        early_stopping=EarlyStopping(patience=config.es_patience),
         save_checkpoints=config.checkpoints,
         log_metrics=config.logging,
         progress_bar=config.progress_bar,
@@ -147,12 +142,28 @@ def main(config: DictConfig):
         val_loader,
     )
 
-    test_df = trainer.test_relevance(
+    val_df = trainer.test_clicks(
         model,
         best_state,
-        test_loader,
-        metric_fns,
+        val_loader,
     )
+
+    test_click_df = trainer.test_clicks(
+        model,
+        best_state,
+        test_click_loader,
+    )
+
+    test_rel_df = trainer.test_relevance(
+        model,
+        best_state,
+        test_rel_loader,
+    )
+
+    history_df.to_parquet("history.parquet")
+    val_df.to_parquet("val.parquet")
+    test_click_df.to_parquet("test_click.parquet")
+    test_rel_df.to_parquet("test_rel.parquet")
 
     if config.logging:
         wandb.finish()
