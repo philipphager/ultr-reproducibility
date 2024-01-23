@@ -1,5 +1,6 @@
 from typing import Callable, Dict
 
+import rax
 from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
@@ -13,12 +14,12 @@ from src.models.base import (
 
 @dataclass
 class IPSConfig:
-    loss_fn: Callable
     dims: int
     layers: int
     dropout: float
     clip: float
     propensity_path: str
+    loss_fn: Callable = rax.softmax_loss
 
 
 @dataclass
