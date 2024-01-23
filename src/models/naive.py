@@ -1,5 +1,6 @@
 from typing import Dict, Callable
 
+import rax
 from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
@@ -9,10 +10,10 @@ from src.models.base import RelevanceModel
 
 @dataclass
 class NaiveConfig:
-    loss_fn: Callable
     dims: int
     layers: int
     dropout: float
+    loss_fn: Callable = rax.pointwise_sigmoid_loss
 
 
 @dataclass
