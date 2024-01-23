@@ -37,10 +37,12 @@ class PositionBasedModel(nn.Module):
 
         if self.config.propensity_path is not None:
             self.examination_model = PretrainedExaminationModel(
-                file=self.config.propensity_path
+                file=self.config.propensity_path,
             )
         else:
-            self.examination_model = ExaminationModel(positions=self.config.positions)
+            self.examination_model = ExaminationModel(
+                positions=self.config.positions,
+            )
 
     def __call__(self, batch: Dict, training: bool) -> PBMOutput:
         examination = self.predict_examination(batch, training=training)

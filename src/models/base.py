@@ -55,9 +55,11 @@ class PretrainedExaminationModel(nn.Module):
     file: str
 
     def setup(self):
+        print(f"Loading propensities from file: {self.file}")
         assert Path(self.file).exists()
-        data = np.genfromtxt(self.file, delimiter=",")[1]
-        propensities = jnp.asarray(data)
+
+        data = np.genfromtxt(self.file, delimiter=",")
+        propensities = jnp.asarray(data[1])
         self.model = lambda x: propensities[x]
 
     def __call__(self, batch: Dict, training: bool) -> Array:
