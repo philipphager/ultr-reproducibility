@@ -18,8 +18,8 @@ from torch.utils.data import DataLoader
 
 from src.data import collate_fn, random_split, LabelEncoder
 from src.log import get_wandb_run_name
-from src.trainer import Trainer, Stage
-from src.util import EarlyStopping, aggregate_metrics
+from src.trainer import Trainer
+from src.util import EarlyStopping
 
 pyarrow_hotfix.uninstall()
 
@@ -97,62 +97,40 @@ def main(config: DictConfig):
         random_state=config.random_state,
         test_size=0.5,
     )
-
-    val_rels, test_rels = random_split(
-        test_rels,
-        shuffle=True,
-        random_state=config.random_state,
-        test_size=0.5,
-        stratify="frequency_bucket",
-    )
-
-    train_click_loader = DataLoader(
+    train_loader = DataLoader(
         train_clicks,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
         num_workers=config.num_workers,
         pin_memory=True,
     )
-    val_click_loader = DataLoader(
+    val_loader = DataLoader(
         val_clicks,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
         num_workers=config.num_workers,
         pin_memory=True,
     )
-    test_click_loader = DataLoader(
-        test_clicks,
-        collate_fn=collate_fn,
-        batch_size=config.batch_size,
-    )
-    val_rel_loader = DataLoader(
-        val_rels,
-        collate_fn=collate_fn,
-        batch_size=config.batch_size,
-        num_workers=config.num_workers,
-        pin_memory=True,
-    )
-    test_rel_loader = DataLoader(
+    test_loader = DataLoader(
         test_rels,
         collate_fn=collate_fn,
         batch_size=config.batch_size,
+        num_workers=config.num_workers,
     )
 
-    model = instantiate(config.model)
-    criterion = instantiate(config.loss)
+    metric_fns = {
+        "ndcg@10": partial(rax.ndcg_metric, topn=10),
+        "mrr@10": partial(rax.mrr_metric, topn=10),
+        "dcg@01": partial(rax.dcg_metric, topn=1),
+        "dcg@03": partial(rax.dcg_metric, topn=3),
+        "dcg@05": partial(rax.dcg_metric, topn=5),
+        "dcg@10": partial(rax.dcg_metric, topn=10),
+    }
 
+    model = instantiate(config.model)
     trainer = Trainer(
         random_state=config.random_state,
         optimizer=optax.adam(learning_rate=config.lr),
-        criterion=criterion,
-        metric_fns={
-            "ndcg@10": partial(rax.ndcg_metric, topn=10),
-            "mrr@10": partial(rax.mrr_metric, topn=10),
-            "dcg@01": partial(rax.dcg_metric, topn=1),
-            "dcg@03": partial(rax.dcg_metric, topn=3),
-            "dcg@05": partial(rax.dcg_metric, topn=5),
-            "dcg@10": partial(rax.dcg_metric, topn=10),
-        },
         epochs=config.max_epochs,
         early_stopping=EarlyStopping(
             metric=config.es_metric,
@@ -162,38 +140,22 @@ def main(config: DictConfig):
         log_metrics=config.logging,
         progress_bar=config.progress_bar,
     )
+
     best_state, history_df = trainer.train(
         model,
-        train_click_loader,
-        val_click_loader,
-        val_rel_loader,
+        train_loader,
+        val_loader,
     )
-    history_df.to_parquet("history.parquet")
 
-    _, val_rel_df = trainer.eval(
+    test_df = trainer.test_relevance(
         model,
         best_state,
-        val_click_loader,
-        val_rel_loader,
-        stage=Stage.VAL,
+        test_loader,
+        metric_fns,
     )
-    val_rel_df.to_parquet("val.parquet")
-
-    _, test_rel_df = trainer.eval(
-        model,
-        best_state,
-        test_click_loader,
-        test_rel_loader,
-        stage=Stage.TEST,
-    )
-    test_rel_df.to_parquet("test.parquet")
 
     if config.logging:
         wandb.finish()
-
-    # Return best val metric for hyperparameter tuning using Optuna
-    best_val_metrics = aggregate_metrics(val_rel_df)
-    return best_val_metrics[config.es_metric]
 
 
 if __name__ == "__main__":
