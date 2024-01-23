@@ -1,0 +1,11 @@
+_target_: src.models.IPSModel
+config:
+  _target_: src.models.IPSConfig
+  dims: 32
+  layers: 3
+  dropout: 0.1
+  clip: 0.1
+  propensity_path: "propensities/global_all_pairs.csv"
+  loss_fn:
+    _target_: rax.pointwise_sigmoid_loss
+    _partial_: True

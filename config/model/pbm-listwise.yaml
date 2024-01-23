@@ -1,0 +1,10 @@
+_target_: src.models.PositionBasedModel
+config:
+  _target_: src.models.PBMConfig
+  dims: 32
+  layers: 3
+  dropout: 0.1
+  positions: 50
+  loss_fn:
+    _target_: rax.softmax_loss
+    _partial_: True

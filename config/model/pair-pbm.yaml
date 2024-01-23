@@ -1,8 +1,0 @@
-defaults:
-  - base
-
-_target_: src.models.PairPositionBasedModel
-bias_dims: 32
-bias_layers: 3
-bias_dropout: 0.1
-tower_combination: NONE

@@ -1,5 +1,0 @@
-_target_: src.loss.behavior_cloning
-_partial_: True
-loss_fn:
-  _target_: rax.pointwise_mse_loss
-  _partial_: True
