@@ -1,25 +1,22 @@
-import pandas as pd
 import enum
-import logging
 import os
 import time
 from functools import partial
 from pathlib import Path
-from typing import Dict, Callable, Tuple, Optional
+from typing import Dict, Tuple, Callable, Optional
 
 import flax.linen as nn
 import jax
+import pandas as pd
 import wandb
 from flax.training import train_state
+from flax.training.early_stopping import EarlyStopping
 from jax import jit
 from pandas import DataFrame
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.log import print_metric_table
-from src.util import EarlyStopping, collect_metrics, aggregate_metrics, save_state
-
-logger = logging.getLogger("rich")
+from src.util import save_state, collect_metrics
 
 
 class TrainState(train_state.TrainState):
@@ -38,8 +35,8 @@ class Trainer:
         self,
         random_state: int,
         optimizer,
-        criterion,
         metric_fns: Dict[str, Callable],
+        click_metric_fns: Dict[str, Callable],
         epochs: int,
         early_stopping: EarlyStopping,
         save_checkpoints: bool = True,
@@ -48,8 +45,8 @@ class Trainer:
     ):
         self.random_state = random_state
         self.optimizer = optimizer
-        self.criterion = criterion
         self.metric_fns = metric_fns
+        self.click_metric_fns = click_metric_fns
         self.epochs = epochs
         self.early_stopping = early_stopping
         self.save_checkpoints = save_checkpoints
@@ -60,8 +57,7 @@ class Trainer:
         self,
         model: nn.Module,
         train_loader: DataLoader,
-        val_click_loader: Optional[DataLoader],
-        val_rel_loader: Optional[DataLoader],
+        val_loader: DataLoader,
     ) -> Tuple[TrainState, pd.DataFrame]:
         start_time = time.time()
         state = self._init_train_state(model, train_loader)
@@ -73,16 +69,11 @@ class Trainer:
                 model, state, train_loader, f"Epoch: {epoch} - Training"
             )
 
-            val_click_df, val_rel_df = self._eval_epoch(
-                model, state, val_click_loader, val_rel_loader, f"Epoch: {epoch} - Val"
+            val_loss = self._val_epoch(
+                model, state, val_loader, f"Epoch: {epoch} - Val"
             )
 
-            val_click_metrics = aggregate_metrics(val_click_df)
-            val_rel_metrics = aggregate_metrics(val_rel_df)
-            val_metrics = {**val_click_metrics, **val_rel_metrics}
-
-            has_improved, should_stop = self.early_stopping.update(val_metrics)
-            logger.info(f"Epoch {epoch}: {val_metrics}, has_improved: {has_improved}")
+            has_improved, self.early_stopping = self.early_stopping.update(val_loss)
 
             if has_improved:
                 best_model_state = state
@@ -91,47 +82,51 @@ class Trainer:
                     save_state(state, Path(os.getcwd()), "best_state")
 
             epoch_metrics = {
-                "Val/": val_metrics,
                 "Train/loss": float(train_loss),
+                "Val/loss": float(val_loss),
                 "Misc/TimePerEpoch": (time.time() - start_time) / (epoch + 1),
                 "Misc/Epoch": epoch,
             }
+            print(f"Epoch {epoch}: {epoch_metrics}, has improved: {has_improved}")
             history.append(pd.json_normalize(epoch_metrics, sep=""))
 
             if self.log_metrics:
                 wandb.log(epoch_metrics, step=epoch)
 
-            if should_stop:
-                logger.info(f"Epoch: {epoch}: Stopping early")
+            if self.early_stopping.should_stop:
+                print(f"Epoch: {epoch}: Stopping early")
                 break
 
         history_df = pd.concat(history) if len(history) > 0 else pd.DataFrame([])
         return best_model_state, history_df
 
-    def eval(
+    def test_clicks(
         self,
         model: nn.Module,
         state: TrainState,
-        test_click_loader: Optional[DataLoader],
-        test_rel_loader: Optional[DataLoader],
-        stage: Stage = Stage.TEST,
-    ) -> Tuple[DataFrame, DataFrame]:
-        test_click_df, test_rel_df = self._eval_epoch(
-            model,
-            state,
-            test_click_loader,
-            test_rel_loader,
-            stage,
-        )
-        test_click_metrics = aggregate_metrics(test_click_df)
-        test_rel_metrics = aggregate_metrics(test_rel_df)
-        test_metrics = {**test_click_metrics, **test_rel_metrics}
-        print_metric_table(test_metrics, stage)
+        loader: DataLoader,
+    ) -> DataFrame:
+        metrics = []
 
-        if self.log_metrics and stage == Stage.TEST:
-            wandb.log({"Test/": test_metrics})
+        for batch in tqdm(loader, disable=not self.progress_bar):
+            metric = self._test_click_step(model, state, batch, state.step)
+            metrics.append(metric)
 
-        return test_click_df, test_rel_df
+        return collect_metrics(metrics)
+
+    def test_relevance(
+        self,
+        model: nn.Module,
+        state: TrainState,
+        loader: Optional[DataLoader] = None,
+    ) -> DataFrame:
+        metrics = []
+
+        for batch in tqdm(loader, disable=not self.progress_bar):
+            metric = self._test_relevance_step(model, state, batch, state.step)
+            metrics.append(metric)
+
+        return collect_metrics(metrics)
 
     def _init_train_state(self, model, train_loader):
         key = jax.random.PRNGKey(self.random_state)
@@ -162,34 +157,28 @@ class Trainer:
         epoch_loss /= len(loader)
         return state, epoch_loss
 
-    def _eval_epoch(self, model, state, click_loader, rel_loader, description):
-        click_metrics, rel_metrics = [], []
+    def _val_epoch(self, model, state, loader, description):
+        epoch_loss = 0
 
-        for step, batch in tqdm(
-            enumerate(click_loader), desc=description, disable=not self.progress_bar
-        ):
-            click_metrics.append(self._eval_click_step(model, state, batch, step))
+        for batch in tqdm(loader, desc=description, disable=not self.progress_bar):
+            epoch_loss += self._val_step(model, state, batch, state.step)
 
-        for step, batch in tqdm(
-            enumerate(rel_loader), desc=description, disable=not self.progress_bar
-        ):
-            rel_metrics.append(self._eval_rel_step(model, state, batch, step))
-
-        return collect_metrics(click_metrics), collect_metrics(rel_metrics)
+        epoch_loss /= len(loader)
+        return epoch_loss
 
     @partial(jit, static_argnums=(0, 1))
     def _train_step(self, model, state, batch, step):
         rngs = self.generate_rngs(state, step)
 
         def loss_fn(params):
-            y_predict, _, _ = model.apply(
+            output = model.apply(
                 params,
                 batch,
                 training=True,
                 rngs=rngs,
             )
 
-            return self.criterion(y_predict, batch["click"], where=batch["mask"])
+            return output.loss.mean()
 
         loss, grads = jax.value_and_grad(loss_fn)(state.params)
         state = state.apply_gradients(grads=grads)
@@ -197,42 +186,52 @@ class Trainer:
         return state, loss
 
     @partial(jit, static_argnums=(0, 1))
-    def _eval_click_step(self, model, state, batch, step):
+    def _val_step(self, model, state, batch, step):
         rngs = self.generate_rngs(state, step)
 
-        y_predict, rel_predict, _ = model.apply(
+        output = model.apply(
             state.params,
             batch,
             training=False,
             rngs=rngs,
         )
 
-        # This is an issue with rax's API: reduce_fn behaves differently for pointwise and listwise losses
-        reduce_fn = lambda a, where: a.reshape(len(a), -1).mean(axis=1, where=where.reshape(len(where), -1))
-        loss = self.criterion(
-            y_predict,
-            batch["click"],
-            where=batch["mask"],
-            reduce_fn=reduce_fn,
-        )
-
-        results = {"click_loss": loss}
-
-        for name, metric_fn in self.metric_fns.items():
-            results[f"BC_{name}"] = metric_fn(
-                rel_predict,
-                1 / batch["position"],
-                where=batch["mask"],
-                reduce_fn=None,
-            )
-
-        return results
+        return output.loss.mean()
 
     @partial(jit, static_argnums=(0, 1))
-    def _eval_rel_step(self, model, state, batch, step):
+    def _test_click_step(self, model, state, batch, step):
         rngs = self.generate_rngs(state, step)
 
-        y_predict = model.apply(
+        output = model.apply(
+            state.params,
+            batch,
+            training=False,
+            rngs=rngs,
+        )
+
+        metrics = {
+            "query_id": batch["query_id"],
+            "loss": output.loss,
+        }
+
+        if not hasattr(output, "click"):
+            # Skip click metrics for models not directly predicting clicks:
+            return metrics
+
+        for name, metric_fn in self.click_metric_fns.items():
+            metrics[name] = metric_fn(
+                scores=output.click,
+                labels=batch["click"],
+                where=batch["mask"],
+            )
+
+        return metrics
+
+    @partial(jit, static_argnums=(0, 1))
+    def _test_relevance_step(self, model, state, batch, step):
+        rngs = self.generate_rngs(state, step)
+
+        relevance = model.apply(
             state.params,
             batch,
             training=False,
@@ -240,25 +239,24 @@ class Trainer:
             method=model.predict_relevance,
         )
 
-        results = {
+        metrics = {
             "query_id": batch["query_id"],
             "frequency_bucket": batch["frequency_bucket"],
         }
 
         for name, metric_fn in self.metric_fns.items():
-            results[name] = metric_fn(
-                y_predict,
+            metrics[name] = metric_fn(
+                relevance,
                 batch["label"],
                 where=batch["mask"],
                 reduce_fn=None,
             )
 
-        return results
+        return metrics
 
     @staticmethod
     def generate_rngs(state: TrainState, step: int) -> Dict[str, jax.Array]:
-        # Folding in the step number to generate a new random key.
+        # Folding in the step number to generate a new random key:
         dropout = jax.random.fold_in(key=state.dropout_key, data=step)
         random_model = jax.random.fold_in(key=state.random_model_key, data=step)
-
         return {"dropout": dropout, "random_model": random_model}
