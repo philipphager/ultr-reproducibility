@@ -1,5 +1,5 @@
-from .naive import NaiveModel
-from .pbm import PositionBasedModel
-from .pair_pbm import PairPositionBasedModel
-from .random import RandomModel
-from .two_tower import TwoTowerModel
+from .dla import DualLearningAlgorithm, DLAConfig
+from .ips import IPSModel, IPSConfig
+from .naive import NaiveModel, NaiveConfig
+from .pairwise_debias import PairwiseDebiasModel, PairwiseDebiasConfig
+from .pbm import PositionBasedModel, PBMConfig
