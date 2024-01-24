@@ -7,9 +7,12 @@ import numpy as np
 from flax import linen as nn
 from jax import Array
 
+from src.data import FeatureType, filter_features
+
 
 @flax.struct.dataclass
 class RelevanceConfig:
+    features: FeatureType
     dims: int
     layers: int
     dropout: float
@@ -20,13 +23,13 @@ class RelevanceModel(nn.Module):
 
     @nn.compact
     def __call__(self, batch: Dict, training: bool) -> Array:
-        x = batch["query_document_embedding"]
-
+        x = self.concat_features(batch)
         model = self.get_sequential(training)
         return model(x).squeeze()
 
     def concat_features(self, batch: Dict) -> Array:
-        x = [jnp.atleast_3d(batch[f]) for f in [self.config.feature]]
+        features = filter_features(self.config.features)
+        x = [jnp.atleast_3d(batch[f]) for f in features]
         return jnp.concatenate(x, axis=-1)
 
     def get_sequential(self, training: bool) -> nn.Module:

@@ -6,6 +6,7 @@ from flax.struct import dataclass
 from jax import Array
 from rax._src.types import ReduceFn
 
+from src.data import FeatureType
 from src.models.base import RelevanceModel
 from src.util import reduce_per_query
 
@@ -15,6 +16,7 @@ class NaiveConfig:
     dims: int
     layers: int
     dropout: float
+    features: FeatureType
     loss_fn: Callable = rax.pointwise_sigmoid_loss
     reduce_fn: ReduceFn = reduce_per_query
 

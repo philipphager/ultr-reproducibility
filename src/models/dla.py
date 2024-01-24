@@ -6,6 +6,7 @@ from flax.struct import dataclass
 from jax import Array
 from rax._src.types import ReduceFn
 
+from src.data import FeatureType
 from src.loss import dual_learning_algorithm
 from src.models.base import (
     RelevanceModel,
@@ -16,6 +17,7 @@ from src.util import reduce_per_query
 
 @dataclass
 class DLAConfig:
+    features: FeatureType
     dims: int
     layers: int
     dropout: float
