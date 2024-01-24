@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import jax
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from flax.training import checkpoints
@@ -12,6 +13,10 @@ def reduce_per_query(loss: Array, where: Array) -> Array:
     loss = loss.reshape(len(loss), -1)
     where = where.reshape(len(where), -1)
     return loss.mean(axis=1, where=where)
+
+
+def reciprocal_rank(batch: Dict) -> Array:
+    return jnp.where(batch["mask"], 1.0 / batch["position"], 0.0)
 
 
 def collect_metrics(results: List[Dict[str, Array]]) -> pd.DataFrame:

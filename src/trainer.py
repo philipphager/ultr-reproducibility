@@ -17,7 +17,7 @@ from pandas import DataFrame
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.util import save_state, collect_metrics, aggregate_metrics
+from src.util import save_state, collect_metrics, aggregate_metrics, reciprocal_rank
 
 
 class TrainState(train_state.TrainState):
@@ -236,7 +236,7 @@ class Trainer:
 
         if behavior_cloning:
             # Evaluate how predictions relate to the original Baidu logging policy:
-            labels = 1 / batch["position"]
+            labels = reciprocal_rank(batch)
 
             for name, metric_fn in self.metric_fns.items():
                 metrics[f"BC_{name}"] = metric_fn(
