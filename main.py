@@ -88,7 +88,7 @@ def main(config: DictConfig):
 
     train_clicks = load_clicks(config, split="train")
     test_clicks = load_clicks(config, split="test")
-    annotations = load_annotations(config)
+    test_rels = load_annotations(config)
 
     val_clicks, test_clicks = random_split(
         test_clicks,
@@ -100,7 +100,7 @@ def main(config: DictConfig):
     train_loader = get_loader(config, train_clicks)
     val_loader = get_loader(config, val_clicks)
     test_click_loader = get_loader(config, test_clicks)
-    test_rel_loader = get_loader(config, annotations)
+    test_rel_loader = get_loader(config, test_rels)
 
     model = instantiate(config.model)
 
