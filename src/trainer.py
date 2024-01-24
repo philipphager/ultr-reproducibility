@@ -16,7 +16,7 @@ from pandas import DataFrame
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.util import save_state, collect_metrics
+from src.util import save_state, collect_metrics, aggregate_metrics
 
 
 class TrainState(train_state.TrainState):
@@ -25,9 +25,9 @@ class TrainState(train_state.TrainState):
 
 
 class Stage(str, enum.Enum):
-    TRAIN = "train"
-    VAL = "val"
-    TEST = "test"
+    TRAIN = "Train"
+    VAL = "Val"
+    TEST = "Test"
 
 
 class Trainer:
@@ -105,6 +105,7 @@ class Trainer:
         model: nn.Module,
         state: TrainState,
         loader: DataLoader,
+        log_stage: Optional[Stage] = None,
     ) -> DataFrame:
         metrics = []
 
@@ -112,13 +113,24 @@ class Trainer:
             metric = self._test_click_step(model, state, batch, state.step)
             metrics.append(metric)
 
-        return collect_metrics(metrics)
+        metric_df = collect_metrics(metrics)
+
+        if self.log_metrics and log_stage is not None:
+            agg_metrics = aggregate_metrics(metric_df)
+            wandb.log({f"{log_stage}/": agg_metrics})
+
+        print(metric_df.columns)
+        print(metrics)
+        print(agg_metrics)
+
+        return metric_df
 
     def test_relevance(
         self,
         model: nn.Module,
         state: TrainState,
         loader: Optional[DataLoader] = None,
+        log_stage: Optional[Stage] = None,
     ) -> DataFrame:
         metrics = []
 
@@ -126,7 +138,13 @@ class Trainer:
             metric = self._test_relevance_step(model, state, batch, state.step)
             metrics.append(metric)
 
-        return collect_metrics(metrics)
+        metric_df = collect_metrics(metrics)
+
+        if self.log_metrics and log_stage is not None:
+            agg_metrics = aggregate_metrics(metric_df)
+            wandb.log({f"{log_stage}/": agg_metrics})
+
+        return metric_df
 
     def _init_train_state(self, model, train_loader):
         key = jax.random.PRNGKey(self.random_state)

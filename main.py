@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from src.data import collate_fn, random_split, LabelEncoder
 from src.log import get_wandb_run_name
 from src.metrics import negative_log_likelihood
-from src.trainer import Trainer
+from src.trainer import Trainer, Stage
 
 pyarrow_hotfix.uninstall()
 
@@ -152,12 +152,14 @@ def main(config: DictConfig):
         model,
         best_state,
         test_click_loader,
+        log_stage=Stage.TEST
     )
 
     test_rel_df = trainer.test_relevance(
         model,
         best_state,
         test_rel_loader,
+        log_stage=Stage.TEST
     )
 
     history_df.to_parquet("history.parquet")
