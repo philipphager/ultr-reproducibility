@@ -157,6 +157,7 @@ def main(config: DictConfig):
         model,
         best_state,
         test_click_loader,
+        eval_behavior_cloning=True,
         log_stage=Stage.TEST
     )
 

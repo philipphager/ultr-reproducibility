@@ -106,12 +106,15 @@ class Trainer:
         model: nn.Module,
         state: TrainState,
         loader: DataLoader,
+        eval_behavior_cloning: bool = False,
         log_stage: Optional[Stage] = None,
     ) -> DataFrame:
         metrics = []
 
         for batch in tqdm(loader, disable=not self.progress_bar):
-            metric = self._test_click_step(model, state, batch, state.step)
+            metric = self._test_click_step(
+                model, state, batch, state.step, eval_behavior_cloning
+            )
             metrics.append(metric)
 
         metric_df = collect_metrics(metrics)
@@ -215,8 +218,8 @@ class Trainer:
 
         return output.loss.mean()
 
-    @partial(jit, static_argnums=(0, 1))
-    def _test_click_step(self, model, state, batch, step):
+    @partial(jit, static_argnums=(0, 1, 5))
+    def _test_click_step(self, model, state, batch, step, behavior_cloning):
         rngs = self.generate_rngs(state, step)
 
         output = model.apply(
@@ -230,6 +233,18 @@ class Trainer:
             "query_id": batch["query_id"],
             "loss": output.loss,
         }
+
+        if behavior_cloning:
+            # Evaluate how predictions relate to the original Baidu logging policy:
+            labels = 1 / batch["position"]
+
+            for name, metric_fn in self.metric_fns.items():
+                metrics[f"BC_{name}"] = metric_fn(
+                    scores=output.relevance,
+                    labels=labels,
+                    where=batch["mask"],
+                    reduce_fn=None,
+                )
 
         if not hasattr(output, "click"):
             # Skip click metrics for models not directly predicting clicks:
