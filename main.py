@@ -90,22 +90,6 @@ def main(config: DictConfig):
     test_clicks = load_clicks(config, split="test")
     annotations = load_annotations(config)
 
-    ### FIXME REMOVE
-    train_clicks, _ = random_split(
-        train_clicks,
-        shuffle=True,
-        random_state=config.random_state,
-        test_size=0.99,
-    )
-
-    test_clicks, _ = random_split(
-        test_clicks,
-        shuffle=True,
-        random_state=config.random_state,
-        test_size=0.99,
-    )
-    ### FIXME REMOVE
-
     val_clicks, test_clicks = random_split(
         test_clicks,
         shuffle=True,
@@ -131,9 +115,7 @@ def main(config: DictConfig):
             "dcg@05": partial(rax.dcg_metric, topn=5),
             "dcg@10": partial(rax.dcg_metric, topn=10),
         },
-        click_metric_fns={
-            "nll": negative_log_likelihood
-        },
+        click_metric_fns={"nll": negative_log_likelihood},
         epochs=config.max_epochs,
         early_stopping=EarlyStopping(patience=config.es_patience),
         save_checkpoints=config.checkpoints,
@@ -158,14 +140,11 @@ def main(config: DictConfig):
         best_state,
         test_click_loader,
         eval_behavior_cloning=True,
-        log_stage=Stage.TEST
+        log_stage=Stage.TEST,
     )
 
     test_rel_df = trainer.test_relevance(
-        model,
-        best_state,
-        test_rel_loader,
-        log_stage=Stage.TEST
+        model, best_state, test_rel_loader, log_stage=Stage.TEST
     )
 
     history_df.to_parquet("history.parquet")
