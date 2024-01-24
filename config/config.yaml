@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - data: baidu-mlm-ctr
-  - model: naive-listwise
+  - model: naive-pointwise
   - user_const
 
 random_state: 381
