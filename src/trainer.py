@@ -118,10 +118,7 @@ class Trainer:
         if self.log_metrics and log_stage is not None:
             agg_metrics = aggregate_metrics(metric_df)
             wandb.log({f"{log_stage}/": agg_metrics})
-
-        print(metric_df.columns)
-        print(metrics)
-        print(agg_metrics)
+            print(f"{log_stage}: {agg_metrics}")
 
         return metric_df
 
@@ -143,6 +140,7 @@ class Trainer:
         if self.log_metrics and log_stage is not None:
             agg_metrics = aggregate_metrics(metric_df)
             wandb.log({f"{log_stage}/": agg_metrics})
+            print(f"{log_stage}: {agg_metrics}")
 
         return metric_df
 
