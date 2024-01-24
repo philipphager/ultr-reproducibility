@@ -1,3 +1,4 @@
+from .behavior_cloning import BehaviorCloningModel, BehaviorCloningConfig
 from .dla import DualLearningAlgorithm, DLAConfig
 from .ips import IPSModel, IPSConfig
 from .naive import NaiveModel, NaiveConfig

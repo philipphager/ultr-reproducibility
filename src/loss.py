@@ -104,26 +104,6 @@ def _get_normalized_weights(
     return stop_gradient(weights)
 
 
-def behavior_cloning(
-    scores: Array,
-    labels: Array,
-    where: Array,
-    loss_fn: LossFn = rax.pointwise_mse_loss,
-    reduce_fn: Optional[Callable] = jnp.mean,
-) -> Array:
-    """
-    Behavior cloning, i.e., replication of the logging policy, by learning to predict the observed position of the item at hand.
-    """
-    return loss_fn(
-        scores,
-        jnp.broadcast_to(
-            jnp.power(1 / jnp.arange(1, labels.shape[1] + 1), 2), labels.shape
-        ),
-        where=where,
-        reduce_fn=reduce_fn,
-    )
-
-
 def inverse_propensity_weighting(
     examination: Array,
     relevance: Array,
