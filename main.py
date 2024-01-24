@@ -144,7 +144,10 @@ def main(config: DictConfig):
     )
 
     test_rel_df = trainer.test_relevance(
-        model, best_state, test_rel_loader, log_stage=Stage.TEST
+        model,
+        best_state,
+        test_rel_loader,
+        log_stage=Stage.TEST,
     )
 
     history_df.to_parquet("history.parquet")
