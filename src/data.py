@@ -12,7 +12,7 @@ COLUMNS = {
     "query_id": {"padded": False, "dtype": int},
     "query_document_embedding": {"padded": True, "dtype": float, "type": "bert"},
     "position": {"padded": True, "dtype": int},
-    "mask": {"padded": True, "dtype": int},
+    "mask": {"padded": True, "dtype": bool},
     "n": {"padded": False, "dtype": int},
     "click": {"padded": True, "dtype": int},
     "label": {"padded": True, "dtype": int},
@@ -59,7 +59,8 @@ def collate_fn(samples: List[Dict[str, np.ndarray]]):
                 x = pad(x, max_n) if COLUMNS[column]["padded"] else x
                 batch[column].append(x)
 
-        batch["mask"].append(pad(np.ones(sample["n"]), max_n))
+        mask = pad(np.ones(sample["n"]), max_n).astype(bool)
+        batch["mask"].append(mask)
 
     return {
         column: np.array(features, dtype=COLUMNS[column]["dtype"])
