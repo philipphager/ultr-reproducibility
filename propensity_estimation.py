@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List
 
 import pandas as pd
 import torch
@@ -8,34 +7,26 @@ from ultr_bias_toolkit.bias.intervention_harvesting import AllPairsEstimator
 from ultr_bias_toolkit.bias.intervention_harvesting import PivotEstimator
 from ultr_bias_toolkit.bias.naive import NaiveCtrEstimator
 
-FEATURE_URL = "https://huggingface.co/datasets/philipphager/baidu-ultr_baidu-base-12L/resolve/main/features/features-part-0.csv?download=true"
+FEATURE_URL = "https://huggingface.co/datasets/philipphager/baidu-ultr_baidu-mlm-ctr/blob/main/parts/train-features.feather?download=true"
 
 
 def main(
-    cache_directory: str = "~/.cache/huggingface/features/",
+    cache_directory: str = "/beegfs/scratch/user/rdeffaye/baidu-bert/features/",
     random_state: int = 2024,
-    ignored_docs: List[str] = [
-        "876a3c0014c4ca2c534b3f0c8adc8b1c",
-        "e86e1992b76bde5e803c912f9964e1a6",
-    ],
 ):
     # For the cross-entopy maximization in AllPairs
     torch.manual_seed(random_state)
 
     cache_directory = Path(cache_directory).expanduser()
     cache_directory.mkdir(parents=True, exist_ok=True)
-    feature_path = cache_directory / "features-part-0.csv"
+    feature_path = cache_directory / "train-features.feather"
 
     if not feature_path.exists():
         print("Downloading Baidu features from huggingface...")
-        df = pd.read_csv(FEATURE_URL)
-        df.to_csv(feature_path)
+        df = pd.read_feather(FEATURE_URL, columns = ["query_md5", "text_md5", "position", "click"])
+        df.to_feather(feature_path)
     else:
-        df = pd.read_csv(feature_path)
-
-    # Remove problematic documents
-    df = df[~df["text_md5"].isin(ignored_docs)]
-    df = df[["query_md5", "text_md5", "position", "click"]]
+        df = pd.read_feather(feature_path, columns = ["query_md5", "text_md5", "position", "click"])
 
     estimators = {
         "ctr": NaiveCtrEstimator(),
