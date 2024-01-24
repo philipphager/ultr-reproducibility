@@ -1,4 +1,5 @@
 import enum
+import logging
 import os
 import time
 from functools import partial
@@ -87,14 +88,14 @@ class Trainer:
                 "Misc/TimePerEpoch": (time.time() - start_time) / (epoch + 1),
                 "Misc/Epoch": epoch,
             }
-            print(f"Epoch {epoch}: {epoch_metrics}, has improved: {has_improved}")
+            logging.info(f"Epoch {epoch}: {epoch_metrics}, improved: {has_improved}")
             history.append(pd.json_normalize(epoch_metrics, sep=""))
 
             if self.log_metrics:
                 wandb.log(epoch_metrics, step=epoch)
 
             if self.early_stopping.should_stop:
-                print(f"Epoch: {epoch}: Stopping early")
+                logging.info(f"Epoch: {epoch}: Stopping early")
                 break
 
         history_df = pd.concat(history) if len(history) > 0 else pd.DataFrame([])
@@ -118,7 +119,7 @@ class Trainer:
         if self.log_metrics and log_stage is not None:
             agg_metrics = aggregate_metrics(metric_df)
             wandb.log({f"{log_stage}/": agg_metrics})
-            print(f"{log_stage}: {agg_metrics}")
+            logging.info(f"{log_stage}: {agg_metrics}")
 
         return metric_df
 

@@ -1,7 +1,9 @@
+import logging
 from functools import partial
 
 import hydra
 import optax
+import pyarrow
 import pyarrow_hotfix
 import rax
 import torch
@@ -17,7 +19,10 @@ from src.log import get_wandb_run_name
 from src.metrics import negative_log_likelihood
 from src.trainer import Trainer, Stage
 
+logging.basicConfig(level=logging.INFO)
+
 pyarrow_hotfix.uninstall()
+pyarrow.PyExtensionType.set_auto_load(True)
 
 
 def load_clicks(config: DictConfig, split: str):
