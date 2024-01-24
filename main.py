@@ -106,7 +106,7 @@ def main(config: DictConfig):
 
     trainer = Trainer(
         random_state=config.random_state,
-        optimizer=optax.adam(learning_rate=config.lr),
+        optimizer=optax.adamw(learning_rate=config.lr),
         metric_fns={
             "ndcg@10": partial(rax.ndcg_metric, topn=10),
             "mrr@10": partial(rax.mrr_metric, topn=10),
