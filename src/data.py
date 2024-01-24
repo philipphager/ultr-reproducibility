@@ -15,6 +15,18 @@ COLUMNS = {
     "click": {"padded": True, "dtype": int},
     "label": {"padded": True, "dtype": int},
     "frequency_bucket": {"padded": False, "dtype": int},
+    "bm25": {"padded": True, "dtype": float},
+    "bm25_title": {"padded": True, "dtype": float},
+    "bm25_abstract": {"padded": True, "dtype": float},
+    "tf_idf": {"padded": True, "dtype": float},
+    "tf": {"padded": True, "dtype": float},
+    "idf": {"padded": True, "dtype": float},
+    "ql_jelinek_mercer_short": {"padded": True, "dtype": float},
+    "ql_jelinek_mercer_long": {"padded": True, "dtype": float},
+    "ql_dirichlet": {"padded": True, "dtype": float},
+    "document_length": {"padded": True, "dtype": int},
+    "title_length": {"padded": True, "dtype": int},
+    "abstract_length": {"padded": True, "dtype": int},
 }
 
 
