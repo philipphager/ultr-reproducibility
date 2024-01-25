@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Dict
+from typing import Callable, Dict
 
 import rax
 from flax import linen as nn
@@ -9,7 +9,6 @@ from rax._src.types import ReduceFn
 from src.data import FeatureType
 from src.models.base import (
     RelevanceModel,
-    PretrainedExaminationModel,
     ExaminationModel,
 )
 from src.util import reduce_per_query
@@ -22,7 +21,6 @@ class PBMConfig:
     layers: int
     dropout: float
     positions: int
-    propensity_path: Optional[str] = None
     loss_fn: Callable = rax.pointwise_sigmoid_loss
     reduce_fn: ReduceFn = reduce_per_query
 
@@ -41,15 +39,7 @@ class PositionBasedModel(nn.Module):
     def setup(self):
         config = self.config
         self.relevance_model = RelevanceModel(config)
-
-        if config.propensity_path is not None:
-            self.examination_model = PretrainedExaminationModel(
-                file=config.propensity_path,
-            )
-        else:
-            self.examination_model = ExaminationModel(
-                positions=config.positions,
-            )
+        self.examination_model = ExaminationModel(positions=config.positions)
 
     def __call__(self, batch: Dict, training: bool) -> PBMOutput:
         examination = self.predict_examination(batch, training=training)
