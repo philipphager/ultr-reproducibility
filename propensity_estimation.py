@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 import torch
 from ultr_bias_toolkit.bias.intervention_harvesting import AdjacentChainEstimator
 from ultr_bias_toolkit.bias.intervention_harvesting import AllPairsEstimator
@@ -23,10 +24,15 @@ def main(
 
     if not feature_path.exists():
         print("Downloading Baidu features from huggingface...")
-        df = pd.read_feather(FEATURE_URL, columns = ["query_md5", "text_md5", "position", "click"])
+        df = pd.read_feather(FEATURE_URL, columns = ["query_no", "query_md5", "url_md5", "position", "click"])
         df.to_feather(feature_path)
     else:
-        df = pd.read_feather(feature_path, columns = ["query_md5", "text_md5", "position", "click"])
+        df = pd.read_feather(feature_path, columns = ["query_no", "query_md5", "url_md5", "position", "click"])
+
+    print(len(df))
+    df = df.groupby("query_no").filter(lambda x: len(x) >= 5)
+    df = df[["query_md5", "url_md5", "position", "click"]]
+    print(len(df))
 
     estimators = {
         "ctr": NaiveCtrEstimator(),
@@ -38,7 +44,7 @@ def main(
 
     for i, (name, estimator) in enumerate(estimators.items()):
         print(f"{name} ({i+1}/{len(estimators)})")
-        examination_df = estimator(df, query_col="query_md5", doc_col="text_md5")
+        examination_df = estimator(df, query_col="query_md5", doc_col="url_md5")
         examination_df["estimator"] = name
         examination_dfs.append(examination_df)
 
@@ -53,6 +59,7 @@ def main(
     Path("propensities").mkdir(parents=True, exist_ok=True)
     for name in estimators.keys():
         examination_df[name].to_csv(f"propensities/{name}.csv")
+        np.save(f"propensities/{name}.npy", examination_df[name].to_numpy())
 
 
 if __name__ == "__main__":
