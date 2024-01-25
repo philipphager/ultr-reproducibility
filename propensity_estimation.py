@@ -24,15 +24,11 @@ def main(
 
     if not feature_path.exists():
         print("Downloading Baidu features from huggingface...")
-        df = pd.read_feather(FEATURE_URL, columns = ["query_no", "query_md5", "url_md5", "position", "click"])
+        df = pd.read_feather(FEATURE_URL, columns = ["query_md5", "url_md5", "position", "click"])
         df.to_feather(feature_path)
     else:
-        df = pd.read_feather(feature_path, columns = ["query_no", "query_md5", "url_md5", "position", "click"])
+        df = pd.read_feather(feature_path, columns = ["query_md5", "url_md5", "position", "click"])
 
-    print(len(df))
-    df = df.groupby("query_no").filter(lambda x: len(x) >= 5)
-    df = df[["query_md5", "url_md5", "position", "click"]]
-    print(len(df))
 
     estimators = {
         "ctr": NaiveCtrEstimator(),
