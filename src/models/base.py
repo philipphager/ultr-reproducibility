@@ -39,7 +39,7 @@ class RelevanceModel(nn.Module):
 
         for i in range(config.layers):
             modules.append(nn.Dense(features=config.dims))
-            modules.append(nn.elu)
+            modules.append(nn.relu)
             modules.append(nn.Dropout(rate=config.dropout, deterministic=not training))
 
         modules.append(nn.Dense(features=1))
