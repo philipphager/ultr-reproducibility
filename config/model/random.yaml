@@ -1,1 +1,3 @@
 _target_: src.models.RandomModel
+config:
+  _target_: src.models.RandomConfig
