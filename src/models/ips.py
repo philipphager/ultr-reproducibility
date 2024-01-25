@@ -22,6 +22,7 @@ class IPSConfig:
     layers: int
     dropout: float
     clip: float
+    positions: int
     propensity_path: str
     loss_fn: Callable = rax.softmax_loss
     reduce_fn: ReduceFn = reduce_per_query
@@ -40,7 +41,10 @@ class IPSModel(nn.Module):
     def setup(self):
         config = self.config
         self.relevance_model = RelevanceModel(config)
-        self.examination_model = PretrainedExaminationModel(file=config.propensity_path)
+        self.examination_model = PretrainedExaminationModel(
+            file=config.propensity_path,
+            positions=config.positions,
+        )
         self.max_weight = 1 / config.clip
 
     def __call__(self, batch: Dict, training: bool) -> IPSOutput:
