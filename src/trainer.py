@@ -197,8 +197,7 @@ class Trainer:
                 training=True,
                 rngs=rngs,
             )
-
-            return output.loss.mean()
+            return model.get_loss(output, batch).mean()
 
         loss, grads = jax.value_and_grad(loss_fn)(state.params)
         state = state.apply_gradients(grads=grads)
@@ -216,7 +215,7 @@ class Trainer:
             rngs=rngs,
         )
 
-        return output.loss.mean()
+        return model.get_loss(output, batch).mean()
 
     @partial(jit, static_argnums=(0, 1, 5))
     def _test_click_step(self, model, state, batch, step, behavior_cloning):
@@ -229,9 +228,11 @@ class Trainer:
             rngs=rngs,
         )
 
+        loss = model.get_loss(output, batch)
+
         metrics = {
             "query_id": batch["query_id"],
-            "loss": output.loss,
+            "loss": loss,
         }
 
         if behavior_cloning:
