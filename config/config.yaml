@@ -1,8 +1,7 @@
 defaults:
   - _self_
-  - data: uva-retro-mae
-  - model: pbm
-  - loss: listwise
+  - data: baidu-mlm-ctr
+  - model: naive-pointwise
   - user_const
 
 random_state: 381
@@ -10,7 +9,7 @@ batch_size: 256
 lr: 0.001
 max_epochs: 25
 es_metric: dcg@10
-es_patience: 4
+es_patience: 3
 
 hydra:
   job:

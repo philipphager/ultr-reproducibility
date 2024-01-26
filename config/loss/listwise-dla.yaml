@@ -1,6 +1,0 @@
-_target_: src.loss.dual_learning_algorithm
-_partial_: True
-loss_fn:
-  _target_: rax.softmax_loss
-  _partial_: True
-max_weight: 10

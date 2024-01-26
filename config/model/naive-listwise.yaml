@@ -1,0 +1,10 @@
+_target_: src.models.NaiveModel
+config:
+  _target_: src.models.NaiveConfig
+  features: bert
+  dims: 32
+  layers: 3
+  dropout: 0.1
+  loss_fn:
+    _target_: rax.softmax_loss
+    _partial_: True

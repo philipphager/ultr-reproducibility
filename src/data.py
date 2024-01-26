@@ -1,4 +1,6 @@
+import enum
 from collections import defaultdict
+from functools import lru_cache
 from typing import List, Dict, Optional
 
 import mmh3
@@ -8,14 +10,36 @@ from sklearn.model_selection import train_test_split
 
 COLUMNS = {
     "query_id": {"padded": False, "dtype": int},
-    "query_document_embedding": {"padded": True, "dtype": float},
+    "query_document_embedding": {"padded": True, "dtype": float, "type": "bert"},
     "position": {"padded": True, "dtype": int},
-    "mask": {"padded": True, "dtype": int},
+    "mask": {"padded": True, "dtype": bool},
     "n": {"padded": False, "dtype": int},
     "click": {"padded": True, "dtype": int},
     "label": {"padded": True, "dtype": int},
     "frequency_bucket": {"padded": False, "dtype": int},
+    "bm25": {"padded": True, "dtype": float, "type": "ltr"},
+    "bm25_title": {"padded": True, "dtype": float, "type": "ltr"},
+    "bm25_abstract": {"padded": True, "dtype": float, "type": "ltr"},
+    "tf_idf": {"padded": True, "dtype": float, "type": "ltr"},
+    "tf": {"padded": True, "dtype": float, "type": "ltr"},
+    "idf": {"padded": True, "dtype": float, "type": "ltr"},
+    "ql_jelinek_mercer_short": {"padded": True, "dtype": float, "type": "ltr"},
+    "ql_jelinek_mercer_long": {"padded": True, "dtype": float, "type": "ltr"},
+    "ql_dirichlet": {"padded": True, "dtype": float, "type": "ltr"},
+    "document_length": {"padded": True, "dtype": int, "type": "ltr"},
+    "title_length": {"padded": True, "dtype": int, "type": "ltr"},
+    "abstract_length": {"padded": True, "dtype": int, "type": "ltr"},
 }
+
+
+class FeatureType(str, enum.Enum):
+    BERT = "bert"
+    LTR = "ltr"
+
+
+@lru_cache(maxsize=None)
+def filter_features(feature_type: FeatureType) -> List[str]:
+    return [k for k, v in COLUMNS.items() if "type" in v and v["type"] == feature_type]
 
 
 def collate_fn(samples: List[Dict[str, np.ndarray]]):
@@ -35,7 +59,8 @@ def collate_fn(samples: List[Dict[str, np.ndarray]]):
                 x = pad(x, max_n) if COLUMNS[column]["padded"] else x
                 batch[column].append(x)
 
-        batch["mask"].append(pad(np.ones(sample["n"]), max_n))
+        mask = pad(np.ones(sample["n"]), max_n).astype(bool)
+        batch["mask"].append(mask)
 
     return {
         column: np.array(features, dtype=COLUMNS[column]["dtype"])

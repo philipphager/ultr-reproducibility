@@ -7,6 +7,7 @@ from jax import Array
 from rax._src.types import ReduceFn
 
 from src.data import FeatureType
+from src.loss import dual_learning_algorithm
 from src.models.base import (
     RelevanceModel,
     ExaminationModel,
@@ -15,48 +16,50 @@ from src.util import reduce_per_query
 
 
 @dataclass
-class PBMConfig:
+class DLAConfig:
     features: FeatureType
     dims: int
     layers: int
     dropout: float
     positions: int
-    loss_fn: Callable = rax.pointwise_sigmoid_loss
+    clip: float
+    loss_fn: Callable = rax.softmax_loss
     reduce_fn: ReduceFn = reduce_per_query
 
 
 @dataclass
-class PBMOutput:
-    click: Array
+class DLAOutput:
     examination: Array
     relevance: Array
 
 
-class PositionBasedModel(nn.Module):
-    config: PBMConfig
+class DualLearningAlgorithm(nn.Module):
+    config: DLAConfig
 
     def setup(self):
         config = self.config
         self.relevance_model = RelevanceModel(config)
         self.examination_model = ExaminationModel(positions=config.positions)
+        self.max_weight = 1 / config.clip
 
-    def __call__(self, batch: Dict, training: bool) -> PBMOutput:
+    def __call__(self, batch: Dict, training: bool) -> DLAOutput:
         examination = self.predict_examination(batch, training=training)
         relevance = self.predict_relevance(batch, training=training)
-        click = examination + relevance
 
-        return PBMOutput(
-            click=click,
+        return DLAOutput(
             examination=examination,
             relevance=relevance,
-            reduce_fn=self.config.reduce_fn,
         )
 
-    def get_loss(self, output: PBMOutput, batch: Dict) -> Array:
-        return self.config.loss_fn(
-            scores=output.click,
+    def get_loss(self, output: DLAOutput, batch: Dict) -> Array:
+        return dual_learning_algorithm(
+            examination=output.examination,
+            relevance=output.relevance,
             labels=batch["click"],
             where=batch["mask"],
+            loss_fn=self.config.loss_fn,
+            reduce_fn=self.config.reduce_fn,
+            max_weight=self.max_weight,
         )
 
     def predict_examination(self, batch: Dict, training: bool = False) -> Array:

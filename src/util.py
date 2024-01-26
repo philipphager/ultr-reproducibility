@@ -2,37 +2,21 @@ from pathlib import Path
 from typing import Dict, List
 
 import jax
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-from flax.training import early_stopping, checkpoints
+from flax.training import checkpoints
 from jax import Array
 
 
-class EarlyStopping:
-    def __init__(
-        self,
-        metric: str,
-        patience: int = 0,
-        maximize: bool = True,
-        min_delta: float = 0,
-    ):
-        self.metric = metric
-        self.maximize = maximize
-        self.state = early_stopping.EarlyStopping(
-            patience=patience, min_delta=min_delta
-        )
+def reduce_per_query(loss: Array, where: Array) -> Array:
+    loss = loss.reshape(len(loss), -1)
+    where = where.reshape(len(where), -1)
+    return loss.mean(axis=1, where=where)
 
-    def update(self, metrics: Dict):
-        metric = metrics[self.metric]
-        sign = -1 if self.maximize else 1
-        self.state = self.state.update(sign * metric)
-        return self.state.has_improved, self.state.should_stop
 
-    def should_stop(self) -> bool:
-        return self.state.should_stop
-
-    def has_improved(self) -> bool:
-        return self.state.has_improved
+def reciprocal_rank(batch: Dict) -> Array:
+    return jnp.where(batch["mask"], 1.0 / batch["position"], 0.0)
 
 
 def collect_metrics(results: List[Dict[str, Array]]) -> pd.DataFrame:
@@ -51,8 +35,10 @@ def collect_metrics(results: List[Dict[str, Array]]) -> pd.DataFrame:
     return df.explode(column=list(df.columns)).reset_index(drop=True)
 
 
-def aggregate_metrics(df: pd.DataFrame, ignore_columns=["query_id", "frequency_bucket"]) -> Dict[str, float]:
-    df = df.drop(columns=ignore_columns, errors = "ignore")
+def aggregate_metrics(
+    df: pd.DataFrame, ignore_columns=["query_id", "frequency_bucket"]
+) -> Dict[str, float]:
+    df = df.drop(columns=ignore_columns, errors="ignore")
     return df.mean(axis=0).to_dict()
 
 

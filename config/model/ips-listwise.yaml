@@ -1,0 +1,13 @@
+_target_: src.models.IPSModel
+config:
+  _target_: src.models.IPSConfig
+  features: bert
+  dims: 32
+  layers: 3
+  dropout: 0.1
+  clip: 0.1
+  positions: 50
+  propensity_path: ${hydra:runtime.cwd}/propensities/global_all_pairs.csv
+  loss_fn:
+    _target_: rax.softmax_loss
+    _partial_: True
