@@ -31,7 +31,6 @@ class PairwiseDebiasConfig:
 
 @dataclass
 class PairwiseDebiasOutput:
-    loss: Array
     ratio_positive: Array
     ratio_negative: Array
     relevance: Array
@@ -58,10 +57,17 @@ class PairwiseDebiasModel(nn.Module):
         ratio_positive = self.bias_model_positive(batch, training=training)
         ratio_negative = self.bias_model_negative(batch, training=training)
 
-        loss = pairwise_debiasing(
+        return PairwiseDebiasOutput(
             ratio_positive=ratio_positive,
             ratio_negative=ratio_negative,
             relevance=relevance,
+        )
+
+    def get_loss(self, output: PairwiseDebiasOutput, batch: Dict) -> Array:
+        return pairwise_debiasing(
+            ratio_positive=output.ratio_positive,
+            ratio_negative=output.ratio_negative,
+            relevance=output.relevance,
             labels=batch["click"],
             where=batch["mask"],
             loss_fn=self.config.loss_fn,
@@ -69,13 +75,6 @@ class PairwiseDebiasModel(nn.Module):
             lambdaweight_fn=self.config.lambdaweight_fn,
             max_weight=self.max_weight,
             l_norm=self.config.l_norm,
-        )
-
-        return PairwiseDebiasOutput(
-            loss=loss,
-            ratio_positive=ratio_positive,
-            ratio_negative=ratio_negative,
-            relevance=relevance,
         )
 
     def predict_relevance(self, batch: Dict, training: bool = False) -> Array:

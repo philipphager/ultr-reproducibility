@@ -23,7 +23,6 @@ class NaiveConfig:
 
 @dataclass
 class NaiveOutput:
-    loss: Array
     click: Array
     relevance: Array
 
@@ -37,17 +36,17 @@ class NaiveModel(nn.Module):
     def __call__(self, batch: Dict, training: bool) -> NaiveOutput:
         relevance = self.predict_relevance(batch, training=training)
 
-        loss = self.config.loss_fn(
-            relevance,
-            batch["click"],
-            where=batch["mask"],
-            reduce_fn=self.config.reduce_fn,
-        )
-
         return NaiveOutput(
-            loss=loss,
             click=relevance,
             relevance=relevance,
+        )
+
+    def get_loss(self, output: NaiveOutput, batch: Dict) -> Array:
+        return self.config.loss_fn(
+            scores=output.click,
+            labels=batch["click"],
+            where=batch["mask"],
+            reduce_fn=self.config.reduce_fn,
         )
 
     def predict_relevance(self, batch: Dict, training: bool = False) -> Array:

@@ -29,7 +29,6 @@ class RegressionEMConfig:
 
 @dataclass
 class RegressionEMOutput:
-    loss: Array
     click: Array
     examination: Array
     relevance: Array
@@ -48,20 +47,22 @@ class RegressionEM(nn.Module):
         relevance = self.predict_relevance(batch, training=training)
         click = examination + relevance
 
-        loss = regression_em(
+        return RegressionEMOutput(
+            click=click,
             examination=examination,
             relevance=relevance,
+        )
+
+    def get_loss(self, output: RegressionEMOutput, batch: Dict) -> Array:
+        # Note that this model does not actually learn.
+        # Returning NLL to comply with the trainer setup.
+        return regression_em(
+            examination=output.examination,
+            relevance=output.relevance,
             labels=batch["click"],
             where=batch["mask"],
             loss_fn=self.config.loss_fn,
             reduce_fn=self.config.reduce_fn,
-        )
-
-        return RegressionEMOutput(
-            loss=loss,
-            click=click,
-            examination=examination,
-            relevance=relevance,
         )
 
     def predict_examination(self, batch: Dict, training: bool = False) -> Array:

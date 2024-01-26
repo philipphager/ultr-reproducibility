@@ -27,7 +27,6 @@ class PBMConfig:
 
 @dataclass
 class PBMOutput:
-    loss: Array
     click: Array
     examination: Array
     relevance: Array
@@ -46,14 +45,18 @@ class PositionBasedModel(nn.Module):
         relevance = self.predict_relevance(batch, training=training)
         click = examination + relevance
 
-        loss = self.config.loss_fn(click, batch["click"], where=batch["mask"])
-
         return PBMOutput(
-            loss=loss,
             click=click,
             examination=examination,
             relevance=relevance,
             reduce_fn=self.config.reduce_fn,
+        )
+
+    def get_loss(self, output: PBMOutput, batch: Dict) -> Array:
+        return self.config.loss_fn(
+            scores=output.click,
+            labels=batch["click"],
+            where=batch["mask"],
         )
 
     def predict_examination(self, batch: Dict, training: bool = False) -> Array:

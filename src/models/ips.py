@@ -30,7 +30,6 @@ class IPSConfig:
 
 @dataclass
 class IPSOutput:
-    loss: Array
     examination: Array
     relevance: Array
 
@@ -51,20 +50,20 @@ class IPSModel(nn.Module):
         examination = self.predict_examination(batch, training=training)
         relevance = self.predict_relevance(batch, training=training)
 
-        loss = inverse_propensity_weighting(
+        return IPSOutput(
             examination=examination,
             relevance=relevance,
+        )
+
+    def get_loss(self, output: IPSOutput, batch: Dict) -> Array:
+        return inverse_propensity_weighting(
+            examination=output.examination,
+            relevance=output.relevance,
             labels=batch["click"],
             where=batch["mask"],
             loss_fn=self.config.loss_fn,
             reduce_fn=self.config.reduce_fn,
             max_weight=self.max_weight,
-        )
-
-        return IPSOutput(
-            loss=loss,
-            examination=examination,
-            relevance=relevance,
         )
 
     def predict_examination(self, batch: Dict, training: bool = False) -> Array:

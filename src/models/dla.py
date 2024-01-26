@@ -29,7 +29,6 @@ class DLAConfig:
 
 @dataclass
 class DLAOutput:
-    loss: Array
     examination: Array
     relevance: Array
 
@@ -47,20 +46,20 @@ class DualLearningAlgorithm(nn.Module):
         examination = self.predict_examination(batch, training=training)
         relevance = self.predict_relevance(batch, training=training)
 
-        loss = dual_learning_algorithm(
+        return DLAOutput(
             examination=examination,
             relevance=relevance,
+        )
+
+    def get_loss(self, output: DLAOutput, batch: Dict) -> Array:
+        return dual_learning_algorithm(
+            examination=output.examination,
+            relevance=output.relevance,
             labels=batch["click"],
             where=batch["mask"],
             loss_fn=self.config.loss_fn,
             reduce_fn=self.config.reduce_fn,
             max_weight=self.max_weight,
-        )
-
-        return DLAOutput(
-            loss=loss,
-            examination=examination,
-            relevance=relevance,
         )
 
     def predict_examination(self, batch: Dict, training: bool = False) -> Array:

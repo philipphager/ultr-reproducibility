@@ -1,3 +1,5 @@
+from typing import Dict
+
 import rax
 from flax import linen as nn
 from flax.struct import dataclass
@@ -15,7 +17,6 @@ class RandomConfig:
 
 @dataclass
 class RandomOutput:
-    loss: Array
     click: Array
     relevance: Array
 
@@ -27,19 +28,19 @@ class RandomModel(nn.Module):
     def __call__(self, batch, training: bool = False) -> RandomOutput:
         relevance = self.predict_relevance(batch, training)
 
+        return RandomOutput(
+            click=relevance,
+            relevance=relevance,
+        )
+
+    def get_loss(self, output: RandomOutput, batch: Dict) -> Array:
         # Note that this model does not actually learn.
         # Returning NLL to comply with the trainer setup.
-        loss = rax.pointwise_sigmoid_loss(
-            scores=relevance,
+        return rax.pointwise_sigmoid_loss(
+            scores=output.click,
             labels=batch["click"],
             where=batch["mask"],
             reduce_fn=self.config.reduce_fn,
-        )
-
-        return RandomOutput(
-            loss=loss,
-            click=relevance,
-            relevance=relevance,
         )
 
     def predict_relevance(
