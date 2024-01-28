@@ -20,6 +20,5 @@ srun python -u main.py -m \
     data=baidu-mlm-ctr \
     model=naive-pointwise \
     model.config.features=bert \
-    model.config.dropout=0 \
     max_epochs=15 \
      $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
