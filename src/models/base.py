@@ -17,6 +17,7 @@ class RelevanceConfig:
     dims: int
     layers: int
     dropout: float
+    normalize: bool = False
 
 
 class RelevanceModel(nn.Module):
@@ -25,6 +26,10 @@ class RelevanceModel(nn.Module):
     @nn.compact
     def __call__(self, batch: Dict, training: bool) -> Array:
         x = self.concat_features(batch)
+
+        if self.config.normalize:
+            x = jnp.sign(x) * jnp.log1p(jnp.abs(x))
+
         model = self.get_sequential(training)
         return model(x).squeeze()
 
