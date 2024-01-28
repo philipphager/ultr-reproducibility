@@ -17,7 +17,6 @@ class RelevanceConfig:
     dims: int
     layers: int
     dropout: float
-    normalize: bool = False
 
 
 class RelevanceModel(nn.Module):
@@ -27,7 +26,7 @@ class RelevanceModel(nn.Module):
     def __call__(self, batch: Dict, training: bool) -> Array:
         x = self.concat_features(batch)
 
-        if self.config.normalize:
+        if self.config.features == FeatureType.LTR:
             x = jnp.sign(x) * jnp.log1p(jnp.abs(x))
 
         model = self.get_sequential(training)
