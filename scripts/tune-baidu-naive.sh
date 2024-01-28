@@ -1,17 +1,25 @@
 #!/bin/bash
 
+#SBATCH --job-name=tune-baidu
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --time=02:00:00
+#SBATCH --array=1-36%8
+
 source ${HOME}/.bashrc
 mamba activate ultr-reproducibility
 
-python main.py -m \
+HPARAMS_FILE=tune-layers.txt
+
+srun python -u main.py -m \
   hydra.sweep.dir=/projects/0/prjs0860/hydra/tune \
-  checkpoints=False \
-  logging=False \
-  data=baidu-mlm-ctr \
-  model=naive-pointwise \
-  model.config.features=bert \
-  model.config.dims=128,256,512 \
-  model.config.layers=3,4,5 \
-  model.config.dropout=0.0,0.3,0.5 \
-  random_state=816,1906,4269,5707,9057 \
-  lr=0.01,0.001,0.001
+    checkpoints=False \
+    logging=True \
+    data=baidu-mlm-ctr \
+    model=naive-pointwise \
+    model.config.features=bert \
+    model.config.dropout=0 \
+    max_epochs=15 \
+     $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
