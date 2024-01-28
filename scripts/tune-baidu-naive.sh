@@ -4,8 +4,9 @@ source ${HOME}/.bashrc
 mamba activate ultr-reproducibility
 
 python main.py -m \
-  checkpoints=False\
-  logging=False\
+  hydra.sweep.dir=/projects/0/prjs0860/hydra/tune \
+  checkpoints=False \
+  logging=False \
   data=baidu-mlm-ctr \
   model=naive-pointwise \
   model.config.features=bert \
