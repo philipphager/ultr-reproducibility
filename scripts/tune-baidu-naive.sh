@@ -6,12 +6,12 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --time=02:00:00
-#SBATCH --array=1-36%8
+#SBATCH --array=1-36%9
 
 source ${HOME}/.bashrc
 mamba activate ultr-reproducibility
 
-HPARAMS_FILE=tune-layers.txt
+HPARAMS_FILE=scripts/tune-layers.txt
 
 srun python -u main.py -m \
   hydra.sweep.dir=/projects/0/prjs0860/hydra/tune \
