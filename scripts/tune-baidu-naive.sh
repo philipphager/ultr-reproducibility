@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --time=02:00:00
-#SBATCH --array=1-36%9
+#SBATCH --array=1-9
 
 source ${HOME}/.bashrc
 mamba activate ultr-reproducibility
