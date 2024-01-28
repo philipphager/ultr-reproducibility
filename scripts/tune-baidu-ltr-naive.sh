@@ -15,10 +15,10 @@ HPARAMS_FILE=scripts/tune-layers.txt
 
 srun python -u main.py -m \
   hydra.sweep.dir=/projects/0/prjs0860/hydra/tune \
-    checkpoints=False \
-    logging=True \
-    data=baidu-mlm-ctr \
-    model=naive-pointwise \
-    model.config.features=bert \
-    max_epochs=15 \
-     $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
+  checkpoints=False \
+  logging=True \
+  data=baidu-mlm-ctr \
+  model=naive-pointwise \
+  model.config.features=ltr \
+  max_epochs=15 \
+    $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
