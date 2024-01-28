@@ -1,9 +1,9 @@
 random_state=816 model.config.dims= model.config.layers=2,3,4,5 lr=0.001 model.config.dropout=0
 random_state=1906 model.config.dims= model.config.layers=2,3,4,5 lr=0.001 model.config.dropout=0
 random_state=4269 model.config.dims= model.config.layers=2,3,4,5 lr=0.001 model.config.dropout=0
+random_state=816 model.config.dims= model.config.layers=2,3,4,5 lr=0.0005 model.config.dropout=0
+random_state=1906 model.config.dims= model.config.layers=2,3,4,5 lr=0.0005 model.config.dropout=0
+random_state=4269 model.config.dims= model.config.layers=2,3,4,5 lr=0.0005 model.config.dropout=0
 random_state=816 model.config.dims= model.config.layers=2,3,4,5 lr=0.0001 model.config.dropout=0
 random_state=1906 model.config.dims= model.config.layers=2,3,4,5 lr=0.0001 model.config.dropout=0
 random_state=4269 model.config.dims= model.config.layers=2,3,4,5 lr=0.0001 model.config.dropout=0
-random_state=816 model.config.dims= model.config.layers=2,3,4,5 lr=0.00001 model.config.dropout=0
-random_state=1906 model.config.dims= model.config.layers=2,3,4,5 lr=0.00001 model.config.dropout=0
-random_state=4269 model.config.dims= model.config.layers=2,3,4,5 lr=0.00001 model.config.dropout=0

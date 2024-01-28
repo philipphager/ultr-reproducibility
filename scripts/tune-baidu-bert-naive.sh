@@ -11,7 +11,7 @@
 source ${HOME}/.bashrc
 mamba activate ultr-reproducibility
 
-HPARAMS_FILE=scripts/tune-layers.txt
+HPARAMS_FILE=scripts/1_tune-dims.txt
 
 srun python -u main.py -m \
   hydra.sweep.dir=/projects/0/prjs0860/hydra/tune \
