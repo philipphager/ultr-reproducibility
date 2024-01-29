@@ -18,3 +18,4 @@ multirun
 # Misc
 slurm.sh
 poetry.lock
+*.out
