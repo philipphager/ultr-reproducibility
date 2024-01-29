@@ -1,7 +1,7 @@
 _target_: src.models.DualLearningAlgorithm
 config:
   _target_: src.models.DLAConfig
-  features: bert
+  features: ???
   dims: 32
   layers: 3
   dropout: 0.1

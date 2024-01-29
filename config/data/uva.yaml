@@ -1,1 +1,8 @@
-name: philipphager/baidu-ultr_uva-mlm-ctr
+# @package _global_
+
+data:
+  name: philipphager/baidu-ultr_uva-mlm-ctr
+
+model:
+  config:
+    features: bert
