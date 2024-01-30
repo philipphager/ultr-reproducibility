@@ -1,4 +1,4 @@
-cache_dir: /projects/0/prjs0860/huggingface
+cache_dir: ~/.cache/huggingface/datasets/
 run_dir: multirun
 num_workers: 6
 num_jobs: 8
