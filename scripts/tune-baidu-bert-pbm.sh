@@ -17,7 +17,7 @@ srun python -u main.py -m \
   hydra.sweep.dir=/projects/0/prjs0860/hydra/tune \
   checkpoints=False \
   logging=True \
-  data=baidu-mlm-ctr \
+  data=baidu \
   model=pbm-pointwise,pbm-listwise \
   model.config.features=bert \
   max_epochs=15 \

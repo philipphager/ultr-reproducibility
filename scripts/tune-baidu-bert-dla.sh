@@ -17,7 +17,7 @@ srun python -u main.py -m \
   hydra.sweep.dir=/projects/0/prjs0860/hydra/tune \
   checkpoints=False \
   logging=True \
-  data=baidu-mlm-ctr \
+  data=baidu \
   model=dla \
   model.config.features=bert \
   max_epochs=15 \
