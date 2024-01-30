@@ -47,16 +47,17 @@ def dual_learning_algorithm(
     where: Array,
     loss_fn: LossFn = rax.softmax_loss,
     max_weight: float = 10,
+    norm_by_first: bool = True,
     reduce_fn: Optional[Callable] = jnp.mean,
 ) -> Array:
     """
     Implementation of the Dual Learning Algorithm from Ai et al, 2018: https://arxiv.org/pdf/1804.05938.pdf
     """
     examination_weights = _get_normalized_weights(
-        examination, where, max_weight, softmax=True
+        examination, where, max_weight, softmax=True, norm_by_first=norm_by_first
     )
     relevance_weights = _get_normalized_weights(
-        relevance, where, max_weight, softmax=True
+        relevance, where, max_weight, softmax=True, norm_by_first=norm_by_first
     )
 
     examination_loss = loss_fn(
@@ -82,24 +83,32 @@ def _get_normalized_weights(
     where: Array,
     max_weight: float,
     softmax: bool = False,
+    norm_by_first: bool = True,
 ) -> Array:
     """
     Converts logits to normalized propensity weights by:
     1. [Optional] Applying a softmax to all scores in a ranking (ignoring masked values)
-    2. Normalizing the resulting probabilities by the first item in each ranking
+    2. [Optional] Normalizing the resulting probabilities by the first item in each ranking
     3. Inverting propensities to obtain weights: e.g., propensity 0.5 -> weight 2
     4. Clip the final weights to reduce variance
     """
-    scores = jnp.where(where, scores, -jnp.ones_like(scores) * jnp.inf)
+
     if softmax:
+        scores = jnp.where(where, scores, -jnp.ones_like(scores) * jnp.inf)
         probabilities = nn.softmax(scores, axis=-1)
     else:
         probabilities = scores
+
     # Normalize propensities by the item in first position and convert propensities
     # to weights by computing weights as 1 / propensities:
-    weights = probabilities[:, 0].reshape(-1, 1) / probabilities
+    if norm_by_first:
+        weights = probabilities[:, 0].reshape(-1, 1) / probabilities
+    else:
+        weights = 1 / probabilities
+
+    # Apply clipping
     weights = jnp.where(where, weights, jnp.ones_like(scores))
-    weights = weights.clip(max=max_weight)
+    weights = weights.clip(min=0, max=max_weight)
 
     return stop_gradient(weights)
 

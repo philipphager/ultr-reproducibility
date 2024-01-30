@@ -1,0 +1,10 @@
+_target_: src.models.DualLearningAlgorithm
+config:
+  _target_: src.models.DLAConfig
+  features: ???
+  dims: 32
+  layers: 3
+  dropout: 0.1
+  positions: 50
+  clip: 0.1
+  norm_by_first: False
