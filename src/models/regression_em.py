@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Dict
+from typing import Callable, Dict
 
 import rax
 from flax import linen as nn
@@ -22,7 +22,6 @@ class RegressionEMConfig:
     layers: int
     dropout: float
     positions: int
-    propensity_path: Optional[str] = None
     loss_fn: Callable = rax.pointwise_sigmoid_loss
     reduce_fn: ReduceFn = reduce_per_query
 
