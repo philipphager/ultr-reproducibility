@@ -23,6 +23,7 @@ class DLAConfig:
     dropout: float
     positions: int
     clip: float
+    norm_by_first: bool = True
     loss_fn: Callable = rax.softmax_loss
     reduce_fn: ReduceFn = reduce_per_query
 
@@ -58,9 +59,10 @@ class DualLearningAlgorithm(nn.Module):
             relevance=output.relevance,
             labels=batch["click"],
             where=batch["mask"],
+            max_weight=max_weight,
+            norm_by_first=self.config.norm_by_first,
             loss_fn=self.config.loss_fn,
             reduce_fn=self.config.reduce_fn,
-            max_weight=max_weight,
         )
 
     def predict_examination(self, batch: Dict, training: bool = False) -> Array:

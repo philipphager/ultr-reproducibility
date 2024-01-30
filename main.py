@@ -3,7 +3,6 @@ from functools import partial
 
 import hydra
 import optax
-import pyarrow
 import pyarrow_hotfix
 import rax
 import torch
@@ -67,6 +66,7 @@ def get_loader(config: DictConfig, dataset: Dataset) -> DataLoader:
         batch_size=config.batch_size,
         num_workers=config.num_workers,
         pin_memory=True,
+        persistent_workers=True,
     )
 
 
