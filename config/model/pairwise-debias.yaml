@@ -1,8 +1,9 @@
-_target_: src.models.PairwiseDebiasingModel
+_target_: src.models.PairwiseDebiasModel
 config:
-  _target_: src.models.PairwiseDebiasingConfig
+  _target_: src.models.PairwiseDebiasConfig
   features: bert
   dims: 32
   layers: 3
   dropout: 0.1
   positions: 50
+  clip: 0.1
