@@ -1,12 +1,10 @@
-#!/bin/bash
-
-#SBATCH --job-name=dla-bert
-#SBATCH --partition=genoa
+#SBATCH --job-name=tune-baidu
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=28GB
-#SBATCH --time=3:00:00
-#SBATCH --array=1-18
+#SBATCH --time=02:00:00
+#SBATCH --array=1-8%9
 
 source ${HOME}/.bashrc
 mamba activate ultr-reproducibility

@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=28GB
-#SBATCH --time=3:00:00
+#SBATCH --time=5:00:00
 #SBATCH --array=1-18
 
 source ${HOME}/.bashrc
