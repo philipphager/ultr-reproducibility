@@ -49,7 +49,6 @@ class PositionBasedModel(nn.Module):
             click=click,
             examination=examination,
             relevance=relevance,
-            reduce_fn=self.config.reduce_fn,
         )
 
     def get_loss(self, output: PBMOutput, batch: Dict) -> Array:
@@ -57,6 +56,7 @@ class PositionBasedModel(nn.Module):
             scores=output.click,
             labels=batch["click"],
             where=batch["mask"],
+            reduce_fn=self.config.reduce_fn,
         )
 
     def predict_examination(self, batch: Dict, training: bool = False) -> Array:
