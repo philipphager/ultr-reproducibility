@@ -53,8 +53,8 @@ class PairwiseDebiasModel(nn.Module):
 
     def __call__(self, batch: Dict, training: bool) -> PairwiseDebiasOutput:
         relevance = self.predict_relevance(batch, training=training)
-        ratio_positive = self.bias_model_positive(batch, training=training)
-        ratio_negative = self.bias_model_negative(batch, training=training)
+        ratio_positive = nn.softplus(self.bias_model_positive(batch, training=training))
+        ratio_negative = nn.softplus(self.bias_model_negative(batch, training=training))
 
         return PairwiseDebiasOutput(
             ratio_positive=ratio_positive,
