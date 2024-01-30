@@ -1,11 +1,11 @@
 #!/bin/bash
 
-#SBATCH --job-name=naive-bert
+#SBATCH --job-name=pairwise-bert
 #SBATCH --partition=genoa
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=28GB
-#SBATCH --time=6:00:00
+#SBATCH --time=3:00:00
 #SBATCH --array=1-18
 
 source ${HOME}/.bashrc
@@ -18,7 +18,7 @@ srun python -u main.py -m \
   checkpoints=False \
   logging=True \
   data=baidu-mlm-ctr \
-  model=naive-pointwise,naive-listwise \
+  model=pairwise-debias \
   model.config.features=bert \
   max_epochs=15 \
     $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
