@@ -44,7 +44,6 @@ class IPSModel(nn.Module):
             file=config.propensity_path,
             positions=config.positions,
         )
-        self.max_weight = 1 / config.clip
 
     def __call__(self, batch: Dict, training: bool) -> IPSOutput:
         examination = self.predict_examination(batch, training=training)
@@ -56,6 +55,8 @@ class IPSModel(nn.Module):
         )
 
     def get_loss(self, output: IPSOutput, batch: Dict) -> Array:
+        max_weight = 1 / self.config.clip
+
         return inverse_propensity_weighting(
             examination=output.examination,
             relevance=output.relevance,
@@ -63,7 +64,7 @@ class IPSModel(nn.Module):
             where=batch["mask"],
             loss_fn=self.config.loss_fn,
             reduce_fn=self.config.reduce_fn,
-            max_weight=self.max_weight,
+            max_weight=max_weight,
         )
 
     def predict_examination(self, batch: Dict, training: bool = False) -> Array:
