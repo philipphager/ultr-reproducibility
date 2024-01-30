@@ -1,7 +1,7 @@
 _target_: src.models.PairwiseDebiasModel
 config:
   _target_: src.models.PairwiseDebiasConfig
-  features: bert
+  features: ???
   dims: 32
   layers: 3
   dropout: 0.1

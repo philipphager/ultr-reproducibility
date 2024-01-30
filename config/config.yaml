@@ -1,7 +1,8 @@
 defaults:
   - _self_
-  - data: baidu-mlm-ctr
-  - model: naive-pointwise
+  - data: baidu
+  - model: dla
+#  - hyperparameter: ${data}_${model}
   - user_const
 
 random_state: 381
