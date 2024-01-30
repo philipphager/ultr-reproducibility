@@ -40,7 +40,6 @@ class DualLearningAlgorithm(nn.Module):
         config = self.config
         self.relevance_model = RelevanceModel(config)
         self.examination_model = ExaminationModel(positions=config.positions)
-        self.max_weight = 1 / config.clip
 
     def __call__(self, batch: Dict, training: bool) -> DLAOutput:
         examination = self.predict_examination(batch, training=training)
@@ -52,6 +51,8 @@ class DualLearningAlgorithm(nn.Module):
         )
 
     def get_loss(self, output: DLAOutput, batch: Dict) -> Array:
+        max_weight = 1 / self.config.clip
+
         return dual_learning_algorithm(
             examination=output.examination,
             relevance=output.relevance,
@@ -59,7 +60,7 @@ class DualLearningAlgorithm(nn.Module):
             where=batch["mask"],
             loss_fn=self.config.loss_fn,
             reduce_fn=self.config.reduce_fn,
-            max_weight=self.max_weight,
+            max_weight=max_weight,
         )
 
     def predict_examination(self, batch: Dict, training: bool = False) -> Array:
