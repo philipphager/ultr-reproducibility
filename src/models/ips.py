@@ -1,13 +1,12 @@
 from typing import Callable, Dict
 
-import rax
 from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
 from rax._src.types import ReduceFn
 
 from src.data import FeatureType
-from src.loss import inverse_propensity_weighting
+from src.loss import inverse_propensity_weighting, softmax_loss
 from src.models.base import (
     RelevanceModel,
     PretrainedExaminationModel,
@@ -24,7 +23,7 @@ class IPSConfig:
     clip: float
     positions: int
     propensity_path: str
-    loss_fn: Callable = rax.softmax_loss
+    loss_fn: Callable = softmax_loss
     reduce_fn: ReduceFn = reduce_per_query
 
 
