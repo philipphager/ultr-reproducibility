@@ -21,8 +21,8 @@ from src.trainer import Trainer, Stage
 
 logging.basicConfig(level=logging.INFO)
 
-pyarrow.PyExtensionType.set_auto_load(True)
 pyarrow_hotfix.uninstall()
+pyarrow.PyExtensionType.set_auto_load(True)
 
 
 def load_clicks(config: DictConfig, split: str):
