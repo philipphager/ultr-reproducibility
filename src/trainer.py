@@ -6,6 +6,7 @@ from functools import partial
 from pathlib import Path
 from typing import Dict, Tuple, Callable, Optional
 
+import chex
 import flax.linen as nn
 import jax
 import pandas as pd
