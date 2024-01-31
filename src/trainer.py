@@ -264,7 +264,7 @@ class Trainer:
 
         return metrics
 
-    @chex.chexify()
+    @chex.chexify
     @partial(jit, static_argnums=(0, 1))
     def _test_relevance_step(self, model, state, batch, step):
         rngs = self.generate_rngs(state, step)
