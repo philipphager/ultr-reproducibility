@@ -1,5 +1,6 @@
 from typing import Optional, Callable
 
+import chex
 import jax.numpy as jnp
 import rax
 from flax import linen as nn
@@ -110,6 +111,7 @@ def _get_normalized_weights(
     weights = jnp.where(where, weights, jnp.ones_like(scores))
     weights = weights.clip(min=0, max=max_weight)
 
+    chex.assert_tree_all_finite(weights)
     return stop_gradient(weights)
 
 
@@ -178,5 +180,8 @@ def pairwise_debiasing(
         lambdaweight_fn=unbiased_lambdaweight_fn,
         reduce_fn=reduce_fn,
     )
+
+    chex.assert_tree_all_finite(examination_loss)
+    chex.assert_tree_all_finite(relevance_loss)
 
     return relevance_loss + examination_loss
