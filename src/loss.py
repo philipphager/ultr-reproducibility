@@ -7,6 +7,7 @@ from flax import linen as nn
 from jax import Array
 from jax._src.lax.lax import stop_gradient
 from rax._src.types import LossFn, LambdaweightFn
+from rax._src.utils import normalize_probabilities
 
 
 def regression_em(
@@ -48,18 +49,16 @@ def dual_learning_algorithm(
     where: Array,
     loss_fn: LossFn = rax.softmax_loss,
     max_weight: float = 10,
-    norm_examination: bool = True,
-    norm_relevance: bool = True,
     reduce_fn: Optional[Callable] = jnp.mean,
 ) -> Array:
     """
     Implementation of the Dual Learning Algorithm from Ai et al, 2018: https://arxiv.org/pdf/1804.05938.pdf
     """
     examination_weights = _get_normalized_weights(
-        examination, where, max_weight, softmax=True, norm_by_first=norm_examination
+        examination, where, max_weight, softmax=True
     )
     relevance_weights = _get_normalized_weights(
-        relevance, where, max_weight, softmax=True, norm_by_first=norm_relevance
+        relevance, where, max_weight, softmax=True
     )
 
     examination_loss = loss_fn(
@@ -87,7 +86,6 @@ def _get_normalized_weights(
     where: Array,
     max_weight: float,
     softmax: bool = False,
-    norm_by_first: bool = True,
 ) -> Array:
     """
     Converts logits to normalized propensity weights by:
@@ -105,10 +103,7 @@ def _get_normalized_weights(
 
     # Normalize propensities by the item in first position and convert propensities
     # to weights by computing weights as 1 / propensities:
-    if norm_by_first:
-        weights = probabilities[:, 0].reshape(-1, 1) / probabilities
-    else:
-        weights = 1 / probabilities
+    weights = probabilities[:, 0].reshape(-1, 1) / probabilities
 
     # Apply clipping
     weights = jnp.where(where, weights, jnp.ones_like(scores))
