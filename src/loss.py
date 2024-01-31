@@ -135,7 +135,7 @@ def inverse_propensity_weighting(
     relevance: Array,
     labels: Array,
     where: Array,
-    loss_fn: LossFn = rax.softmax_loss,
+    loss_fn: LossFn = softmax_loss,
     max_weight: float = 10,
     reduce_fn: Optional[Callable] = jnp.mean,
 ):

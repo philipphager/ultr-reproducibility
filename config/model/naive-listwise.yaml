@@ -6,5 +6,5 @@ config:
   layers: 3
   dropout: 0.1
   loss_fn:
-    _target_: rax.softmax_loss
+    _target_: src.loss.softmax_loss
     _partial_: True
