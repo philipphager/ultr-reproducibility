@@ -7,4 +7,5 @@ config:
   dropout: 0.1
   positions: 50
   clip: 0.1
-  norm_by_first: False
+  norm_examination: True
+  norm_relevance: False

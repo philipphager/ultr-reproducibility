@@ -1,6 +1,7 @@
 from typing import Optional, Callable
 
 import chex
+import jax
 import jax.numpy as jnp
 import rax
 from flax import linen as nn
@@ -48,17 +49,18 @@ def dual_learning_algorithm(
     where: Array,
     loss_fn: LossFn = rax.softmax_loss,
     max_weight: float = 10,
-    norm_by_first: bool = True,
+    norm_examination: bool = True,
+    norm_relevance: bool = True,
     reduce_fn: Optional[Callable] = jnp.mean,
 ) -> Array:
     """
     Implementation of the Dual Learning Algorithm from Ai et al, 2018: https://arxiv.org/pdf/1804.05938.pdf
     """
     examination_weights = _get_normalized_weights(
-        examination, where, max_weight, softmax=True, norm_by_first=norm_by_first
+        examination, where, max_weight, softmax=True, norm_by_first=norm_examination
     )
     relevance_weights = _get_normalized_weights(
-        relevance, where, max_weight, softmax=True, norm_by_first=norm_by_first
+        relevance, where, max_weight, softmax=True, norm_by_first=norm_relevance
     )
 
     examination_loss = loss_fn(
@@ -111,7 +113,6 @@ def _get_normalized_weights(
     weights = jnp.where(where, weights, jnp.ones_like(scores))
     weights = weights.clip(min=0, max=max_weight)
 
-    chex.assert_tree_all_finite(weights)
     return stop_gradient(weights)
 
 
@@ -184,4 +185,4 @@ def pairwise_debiasing(
     chex.assert_tree_all_finite(examination_loss)
     chex.assert_tree_all_finite(relevance_loss)
 
-    return relevance_loss + examination_loss
+    return relevance_loss, examination_loss
