@@ -1,6 +1,5 @@
-from typing import Callable, Dict
+from typing import Dict
 
-import rax
 from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
@@ -23,7 +22,6 @@ class DLAConfig:
     dropout: float
     positions: int
     clip: float
-    loss_fn: Callable = rax.softmax_loss
     reduce_fn: ReduceFn = reduce_per_query
 
 
@@ -59,7 +57,6 @@ class DualLearningAlgorithm(nn.Module):
             labels=batch["click"],
             where=batch["mask"],
             max_weight=max_weight,
-            loss_fn=self.config.loss_fn,
             reduce_fn=self.config.reduce_fn,
         )
 

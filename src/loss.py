@@ -10,6 +10,27 @@ from rax._src.types import LossFn, LambdaweightFn
 from rax._src.utils import normalize_probabilities
 
 
+def softmax_loss(
+    scores: Array,
+    labels: Array,
+    where: Array,
+    weights: Optional[Array] = None,
+    reduce_fn: Optional[Callable] = jnp.mean,
+):
+    """
+    Wrapper for Rax softmax cross entropy, ensuring that the labels (clicks)
+    for the same query are scaled to sum to one.
+    """
+    return rax.softmax_loss(
+        scores=scores,
+        labels=labels,
+        where=where,
+        weights=weights,
+        label_fn=normalize_probabilities,
+        reduce_fn=reduce_fn,
+    )
+
+
 def regression_em(
     examination: Array,
     relevance: Array,
@@ -47,41 +68,38 @@ def dual_learning_algorithm(
     relevance: Array,
     labels: Array,
     where: Array,
-    loss_fn: LossFn = rax.softmax_loss,
     max_weight: float = 10,
     reduce_fn: Optional[Callable] = jnp.mean,
 ) -> Array:
     """
     Implementation of the Dual Learning Algorithm from Ai et al, 2018: https://arxiv.org/pdf/1804.05938.pdf
     """
-    examination_weights = _get_normalized_weights(
+    examination_weights = normalize_weights(
         examination, where, max_weight, softmax=True
     )
-    relevance_weights = _get_normalized_weights(
+    relevance_weights = normalize_weights(
         relevance, where, max_weight, softmax=True
     )
 
-    examination_loss = loss_fn(
-        examination,
-        labels,
+    examination_loss = softmax_loss(
+        scores=examination,
+        labels=labels,
         where=where,
         weights=relevance_weights,
         reduce_fn=reduce_fn,
-        label_fn=normalize_probabilities,
     )
-    relevance_loss = loss_fn(
+    relevance_loss = softmax_loss(
         relevance,
         labels,
         where=where,
         weights=examination_weights,
         reduce_fn=reduce_fn,
-        label_fn=normalize_probabilities,
     )
 
     return examination_loss + relevance_loss
 
 
-def _get_normalized_weights(
+def normalize_weights(
     scores: Array,
     where: Array,
     max_weight: float,
@@ -89,10 +107,10 @@ def _get_normalized_weights(
 ) -> Array:
     """
     Converts logits to normalized propensity weights by:
-    1. [Optional] Applying a softmax to all scores in a ranking (ignoring masked values)
-    2. [Optional] Normalizing the resulting probabilities by the first item in each ranking
-    3. Inverting propensities to obtain weights: e.g., propensity 0.5 -> weight 2
-    4. Clip the final weights to reduce variance
+    1. [Optional] Apply a softmax to all scores in a ranking (ignoring masked values)
+    2. Normalize the resulting probabilities by the first item in each ranking
+    3. Invert propensities to obtain weights: e.g., propensity 0.5 -> weight 2
+    4. [Optional] Clip the final weights to reduce variance
     """
 
     if softmax:
@@ -105,7 +123,7 @@ def _get_normalized_weights(
     # to weights by computing weights as 1 / propensities:
     weights = probabilities[:, 0].reshape(-1, 1) / probabilities
 
-    # Apply clipping
+    # Mask padding and apply clipping
     weights = jnp.where(where, weights, jnp.ones_like(scores))
     weights = weights.clip(min=0, max=max_weight)
 
@@ -121,7 +139,7 @@ def inverse_propensity_weighting(
     max_weight: float = 10,
     reduce_fn: Optional[Callable] = jnp.mean,
 ):
-    examination_weights = _get_normalized_weights(
+    examination_weights = normalize_weights(
         examination, where, max_weight, softmax=False
     )
 
@@ -157,10 +175,10 @@ def pairwise_debiasing(
     examination_loss += jnp.power(jnp.linalg.norm(ratio_positive, l_norm), l_norm)
     examination_loss += jnp.power(jnp.linalg.norm(ratio_negative, l_norm), l_norm)
 
-    positive_weight = _get_normalized_weights(
+    positive_weight = normalize_weights(
         ratio_positive, where, max_weight, softmax=False
     )
-    negative_weight = _get_normalized_weights(
+    negative_weight = normalize_weights(
         ratio_negative, where, max_weight, softmax=False
     )
 
