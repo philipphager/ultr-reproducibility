@@ -3,6 +3,7 @@ from functools import partial
 
 import hydra
 import optax
+import pyarrow
 import pyarrow_hotfix
 import rax
 import torch
@@ -20,6 +21,7 @@ from src.trainer import Trainer, Stage
 
 logging.basicConfig(level=logging.INFO)
 
+pyarrow.PyExtensionType.set_auto_load(True)
 pyarrow_hotfix.uninstall()
 
 
