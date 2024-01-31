@@ -186,6 +186,7 @@ class Trainer:
         epoch_loss /= len(loader)
         return epoch_loss
 
+    @chex.chexify
     @partial(jit, static_argnums=(0, 1))
     def _train_step(self, model, state, batch, step):
         rngs = self.generate_rngs(state, step)
@@ -204,6 +205,7 @@ class Trainer:
 
         return state, loss
 
+    @chex.chexify
     @partial(jit, static_argnums=(0, 1))
     def _val_step(self, model, state, batch, step):
         rngs = self.generate_rngs(state, step)
@@ -217,6 +219,7 @@ class Trainer:
 
         return model.get_loss(output, batch).mean()
 
+    @chex.chexify
     @partial(jit, static_argnums=(0, 1, 5))
     def _test_click_step(self, model, state, batch, step, behavior_cloning):
         rngs = self.generate_rngs(state, step)
@@ -260,6 +263,7 @@ class Trainer:
 
         return metrics
 
+    @chex.chexify()
     @partial(jit, static_argnums=(0, 1))
     def _test_relevance_step(self, model, state, batch, step):
         rngs = self.generate_rngs(state, step)
