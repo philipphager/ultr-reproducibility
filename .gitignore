@@ -13,6 +13,9 @@ wandb
 outputs
 multirun
 
+# Utils
+scripts/
+
 +.parquet
 
 # Misc
