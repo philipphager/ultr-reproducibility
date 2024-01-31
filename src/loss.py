@@ -1,7 +1,6 @@
 from typing import Optional, Callable
 
 import chex
-import jax
 import jax.numpy as jnp
 import rax
 from flax import linen as nn
@@ -69,6 +68,7 @@ def dual_learning_algorithm(
         where=where,
         weights=relevance_weights,
         reduce_fn=reduce_fn,
+        label_fn=normalize_probabilities,
     )
     relevance_loss = loss_fn(
         relevance,
@@ -76,6 +76,7 @@ def dual_learning_algorithm(
         where=where,
         weights=examination_weights,
         reduce_fn=reduce_fn,
+        label_fn=normalize_probabilities,
     )
 
     return examination_loss + relevance_loss
