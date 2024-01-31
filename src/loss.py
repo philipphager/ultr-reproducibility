@@ -185,4 +185,4 @@ def pairwise_debiasing(
     chex.assert_tree_all_finite(examination_loss)
     chex.assert_tree_all_finite(relevance_loss)
 
-    return relevance_loss, examination_loss
+    return relevance_loss + examination_loss
