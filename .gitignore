@@ -13,8 +13,12 @@ wandb
 outputs
 multirun
 
+# Utils
+scripts/
+
 +.parquet
 
 # Misc
 slurm.sh
 poetry.lock
+*.out

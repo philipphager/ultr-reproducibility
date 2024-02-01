@@ -12,7 +12,15 @@ from jax import Array
 def reduce_per_query(loss: Array, where: Array) -> Array:
     loss = loss.reshape(len(loss), -1)
     where = where.reshape(len(where), -1)
-    return loss.mean(axis=1, where=where)
+
+    # Adopt Rax safe_reduce as jnp.mean can return NaN if all inputs are 0,
+    # which happens easily for pairwise loss functions without any valid pair.
+    # Replace NaNs with 0 after reduce, but propagate if the loss already contains NaNs:
+    is_input_valid = jnp.logical_not(jnp.any(jnp.isnan(loss)))
+    output = jnp.mean(loss, where=where, axis=1)
+    output = jnp.where(jnp.isnan(output) & is_input_valid, 0.0, output)
+
+    return output
 
 
 def reciprocal_rank(batch: Dict) -> Array:

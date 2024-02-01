@@ -50,12 +50,11 @@ class PairwiseDebiasModel(nn.Module):
         self.relevance_model = RelevanceModel(config)
         self.bias_model_positive = ExaminationModel(positions=config.positions)
         self.bias_model_negative = ExaminationModel(positions=config.positions)
-        self.max_weight = 1 / config.clip
 
     def __call__(self, batch: Dict, training: bool) -> PairwiseDebiasOutput:
         relevance = self.predict_relevance(batch, training=training)
-        ratio_positive = self.bias_model_positive(batch, training=training)
-        ratio_negative = self.bias_model_negative(batch, training=training)
+        ratio_positive = nn.softplus(self.bias_model_positive(batch, training=training))
+        ratio_negative = nn.softplus(self.bias_model_negative(batch, training=training))
 
         return PairwiseDebiasOutput(
             ratio_positive=ratio_positive,
@@ -64,6 +63,8 @@ class PairwiseDebiasModel(nn.Module):
         )
 
     def get_loss(self, output: PairwiseDebiasOutput, batch: Dict) -> Array:
+        max_weight = 1 / self.config.clip
+
         return pairwise_debiasing(
             ratio_positive=output.ratio_positive,
             ratio_negative=output.ratio_negative,
@@ -73,7 +74,7 @@ class PairwiseDebiasModel(nn.Module):
             loss_fn=self.config.loss_fn,
             reduce_fn=self.config.reduce_fn,
             lambdaweight_fn=self.config.lambdaweight_fn,
-            max_weight=self.max_weight,
+            max_weight=max_weight,
             l_norm=self.config.l_norm,
         )
 

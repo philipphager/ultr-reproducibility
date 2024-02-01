@@ -1,4 +1,4 @@
-_target_: src.models.PositionBasedModel
+_target_: src.models.RegressionEM
 config:
   _target_: src.models.PBMConfig
   features: ???
@@ -7,5 +7,5 @@ config:
   dropout: 0.1
   positions: 50
   loss_fn:
-    _target_: src.loss.softmax_loss
+    _target_: rax.pointwise_sigmoid_loss
     _partial_: True

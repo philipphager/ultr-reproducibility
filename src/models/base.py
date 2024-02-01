@@ -25,6 +25,10 @@ class RelevanceModel(nn.Module):
     @nn.compact
     def __call__(self, batch: Dict, training: bool) -> Array:
         x = self.concat_features(batch)
+
+        if self.config.features == FeatureType.LTR:
+            x = jnp.sign(x) * jnp.log1p(jnp.abs(x))
+
         model = self.get_sequential(training)
         return model(x).squeeze()
 

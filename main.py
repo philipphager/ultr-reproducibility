@@ -68,6 +68,7 @@ def get_loader(config: DictConfig, dataset: Dataset) -> DataLoader:
         batch_size=config.batch_size,
         num_workers=config.num_workers,
         pin_memory=True,
+        persistent_workers=True,
     )
 
 
