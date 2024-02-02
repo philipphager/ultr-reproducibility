@@ -1,6 +1,7 @@
 from typing import Optional, Callable
 
 import chex
+import jax
 import jax.numpy as jnp
 import rax
 from flax import linen as nn
@@ -77,9 +78,7 @@ def dual_learning_algorithm(
     examination_weights = normalize_weights(
         examination, where, max_weight, softmax=True
     )
-    relevance_weights = normalize_weights(
-        relevance, where, max_weight, softmax=True
-    )
+    relevance_weights = normalize_weights(relevance, where, max_weight, softmax=True)
 
     examination_loss = softmax_loss(
         scores=examination,
@@ -130,12 +129,32 @@ def normalize_weights(
     return stop_gradient(weights)
 
 
-def inverse_propensity_weighting(
+def pointwise_sigmoid_ips(
+    examination: Array,
+    relevance: Array,
+    labels: Array,
+    where: Optional[Array] = None,
+    max_weight: float = 10,
+    reduce_fn: Optional = jnp.mean,
+) -> Array:
+    """
+    Numerically stable implementation of the pointwise IPS loss from Saito et al.:
+    https://dl.acm.org/doi/abs/10.1145/3336191.3371783
+    """
+    weights = normalize_weights(examination, where, max_weight, softmax=False)
+
+    log_p = jax.nn.log_sigmoid(relevance)
+    log_not_p = jax.nn.log_sigmoid(-relevance)
+
+    loss = -(labels * weights) * log_p - (1.0 - (labels * weights)) * log_not_p
+    return rax.utils.safe_reduce(loss, where=where, reduce_fn=reduce_fn)
+
+
+def listwise_softmax_ips(
     examination: Array,
     relevance: Array,
     labels: Array,
     where: Array,
-    loss_fn: LossFn = softmax_loss,
     max_weight: float = 10,
     reduce_fn: Optional[Callable] = jnp.mean,
 ):
@@ -143,7 +162,7 @@ def inverse_propensity_weighting(
         examination, where, max_weight, softmax=False
     )
 
-    return loss_fn(
+    return softmax_loss(
         relevance,
         labels,
         where=where,
