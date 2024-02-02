@@ -143,11 +143,14 @@ def pointwise_sigmoid_ips(
     """
     weights = normalize_weights(examination, where, max_weight, softmax=False)
 
+    # log(1 - sigmoid(x)) = log_sigmoid(-x), the latter is more numerically stable:
     log_p = jax.nn.log_sigmoid(relevance)
     log_not_p = jax.nn.log_sigmoid(-relevance)
 
     loss = -(labels * weights) * log_p - (1.0 - (labels * weights)) * log_not_p
-    return rax.utils.safe_reduce(loss, where=where, reduce_fn=reduce_fn)
+    loss = jnp.where(where, loss, jnp.zeros_like(loss))
+
+    return rax._src.utils.safe_reduce(loss, where=where, reduce_fn=reduce_fn)
 
 
 def listwise_softmax_ips(
