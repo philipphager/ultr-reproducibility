@@ -6,7 +6,7 @@ from jax import Array
 from rax._src.types import ReduceFn
 
 from src.data import FeatureType
-from src.loss import inverse_propensity_weighting, softmax_loss
+from src.loss import listwise_softmax_ips
 from src.models.base import (
     RelevanceModel,
     PretrainedExaminationModel,
@@ -23,7 +23,7 @@ class IPSConfig:
     clip: float
     positions: int
     propensity_path: str
-    loss_fn: Callable = softmax_loss
+    loss_fn: Callable = listwise_softmax_ips
     reduce_fn: ReduceFn = reduce_per_query
 
 
@@ -56,12 +56,11 @@ class IPSModel(nn.Module):
     def get_loss(self, output: IPSOutput, batch: Dict) -> Array:
         max_weight = 1 / self.config.clip
 
-        return inverse_propensity_weighting(
+        return self.config.loss_fn(
             examination=output.examination,
             relevance=output.relevance,
             labels=batch["click"],
             where=batch["mask"],
-            loss_fn=self.config.loss_fn,
             reduce_fn=self.config.reduce_fn,
             max_weight=max_weight,
         )

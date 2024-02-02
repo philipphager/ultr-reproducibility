@@ -9,5 +9,5 @@ config:
   positions: 50
   propensity_path: ${hydra:runtime.cwd}/propensities/global_all_pairs.csv
   loss_fn:
-    _target_: src.loss.softmax_loss
+    _target_: src.loss.listwise_softmax_ips
     _partial_: True
