@@ -26,6 +26,12 @@ def theme():
             "text": {
                 "font": "serif",
                 "fontSize": 14,
+            },
+            "legend": {
+                "labelFont": "serif",
+                "titleFont": "serif",
+                "titleFontSize": 16,
+                "labelFontSize": 16,
             }
         },
     }
