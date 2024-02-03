@@ -1,6 +1,7 @@
 from typing import Optional, Callable
 
 import chex
+import jax
 import jax.numpy as jnp
 import rax
 from flax import linen as nn
@@ -77,9 +78,7 @@ def dual_learning_algorithm(
     examination_weights = normalize_weights(
         examination, where, max_weight, softmax=True
     )
-    relevance_weights = normalize_weights(
-        relevance, where, max_weight, softmax=True
-    )
+    relevance_weights = normalize_weights(relevance, where, max_weight, softmax=True)
 
     examination_loss = softmax_loss(
         scores=examination,
@@ -99,55 +98,47 @@ def dual_learning_algorithm(
     return examination_loss + relevance_loss
 
 
-def normalize_weights(
-    scores: Array,
-    where: Array,
-    max_weight: float,
-    softmax: bool = False,
+def pointwise_sigmoid_ips(
+    examination: Array,
+    relevance: Array,
+    labels: Array,
+    where: Optional[Array] = None,
+    max_weight: float = 10,
+    reduce_fn: Optional = jnp.mean,
+    eps: float = 1.0e-9,
 ) -> Array:
     """
-    Converts logits to normalized propensity weights by:
-    1. [Optional] Apply a softmax to all scores in a ranking (ignoring masked values)
-    2. Normalize the resulting probabilities by the first item in each ranking
-    3. Invert propensities to obtain weights: e.g., propensity 0.5 -> weight 2
-    4. [Optional] Clip the final weights to reduce variance
+    Pointwise IPS loss as in Bekker et al.:
+    https://arxiv.org/pdf/1809.03207.pdf
+    and Saito et al.:
+    https://dl.acm.org/doi/abs/10.1145/3336191.3371783
     """
+    weights = _ips_weights(examination, where, max_weight)
 
-    if softmax:
-        scores = jnp.where(where, scores, -jnp.ones_like(scores) * jnp.inf)
-        probabilities = nn.softmax(scores, axis=-1)
-    else:
-        probabilities = scores
+    scores = jax.nn.sigmoid(relevance)
+    log_p = jnp.log(scores.clip(min=eps))
+    log_not_p = jnp.log((1 - scores).clip(min=eps))
 
-    # Normalize propensities by the item in first position and convert propensities
-    # to weights by computing weights as 1 / propensities:
-    weights = probabilities[:, 0].reshape(-1, 1) / probabilities
+    loss = -(weights * labels) * log_p - (1.0 - (weights * labels)) * log_not_p
 
-    # Mask padding and apply clipping
-    weights = jnp.where(where, weights, jnp.ones_like(scores))
-    weights = weights.clip(min=0, max=max_weight)
-
-    return stop_gradient(weights)
+    return rax._src.utils.safe_reduce(loss, where=where, reduce_fn=reduce_fn)
 
 
-def inverse_propensity_weighting(
+def listwise_softmax_ips(
     examination: Array,
     relevance: Array,
     labels: Array,
     where: Array,
-    loss_fn: LossFn = softmax_loss,
     max_weight: float = 10,
     reduce_fn: Optional[Callable] = jnp.mean,
 ):
-    examination_weights = normalize_weights(
-        examination, where, max_weight, softmax=False
-    )
+    weights = _ips_weights(examination, where, max_weight)
 
-    return loss_fn(
+    return softmax_loss(
         relevance,
         labels,
         where=where,
-        weights=examination_weights,
+        weights=weights,
         reduce_fn=reduce_fn,
     )
 
@@ -200,3 +191,46 @@ def pairwise_debiasing(
     chex.assert_tree_all_finite(relevance_loss)
 
     return relevance_loss + examination_loss
+
+
+def normalize_weights(
+    scores: Array,
+    where: Array,
+    max_weight: float,
+    softmax: bool = False,
+) -> Array:
+    """
+    Converts logits to normalized propensity weights by:
+    1. [Optional] Apply a softmax to all scores in a ranking (ignoring masked values)
+    2. Normalize the resulting probabilities by the first item in each ranking
+    3. Invert propensities to obtain weights: e.g., propensity 0.5 -> weight 2
+    4. [Optional] Clip the final weights to reduce variance
+    """
+
+    if softmax:
+        scores = jnp.where(where, scores, -jnp.ones_like(scores) * jnp.inf)
+        probabilities = nn.softmax(scores, axis=-1)
+    else:
+        probabilities = scores
+
+    # Normalize propensities by the item in first position and convert propensities
+    # to weights by computing weights as 1 / propensities:
+    weights = probabilities[:, 0].reshape(-1, 1) / probabilities
+
+    # Mask padding and apply clipping
+    weights = jnp.where(where, weights, jnp.ones_like(scores))
+    weights = weights.clip(min=0, max=max_weight)
+
+    return stop_gradient(weights)
+
+
+def _ips_weights(
+    examination: Array,
+    where: Array,
+    max_weight: float,
+) -> Array:
+    weights = 1 / examination
+    weights = jnp.where(where, weights, jnp.ones_like(examination))
+    weights = weights.clip(min=0, max=max_weight)
+
+    return stop_gradient(weights)

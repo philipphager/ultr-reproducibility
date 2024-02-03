@@ -1,0 +1,9 @@
+# @package _global_
+
+model:
+  config:
+    dims: 256
+    layers: 2
+    dropout: 0
+
+lr: 0.0001
