@@ -105,19 +105,21 @@ def pointwise_sigmoid_ips(
     where: Optional[Array] = None,
     max_weight: float = 10,
     reduce_fn: Optional = jnp.mean,
+    eps: float = 1.0e-9,
 ) -> Array:
     """
-    Numerically stable implementation of the pointwise IPS loss from Saito et al.:
+    Pointwise IPS loss as in Bekker et al.:
+    https://arxiv.org/pdf/1809.03207.pdf
+    and Saito et al.:
     https://dl.acm.org/doi/abs/10.1145/3336191.3371783
     """
     weights = _ips_weights(examination, where, max_weight)
 
-    # log(1 - sigmoid(x)) = log_sigmoid(-x), the latter is more numerically stable:
-    log_p = jax.nn.log_sigmoid(relevance)
-    log_not_p = jax.nn.log_sigmoid(-relevance)
+    scores = jax.nn.sigmoid(relevance)
+    log_p = jnp.log(scores.clip(min=eps))
+    log_not_p = jnp.log((1 - scores).clip(min=eps))
 
     loss = -(weights * labels) * log_p - (1.0 - (weights * labels)) * log_not_p
-    loss = jnp.where(where, loss, jnp.zeros_like(loss))
 
     return rax._src.utils.safe_reduce(loss, where=where, reduce_fn=reduce_fn)
 
