@@ -3,6 +3,7 @@ from typing import Callable, Dict
 from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
+from jax._src.scipy.special import logit
 from rax._src.types import ReduceFn
 
 from src.data import FeatureType
@@ -29,6 +30,7 @@ class IPSConfig:
 
 @dataclass
 class IPSOutput:
+    click: Array
     examination: Array
     relevance: Array
 
@@ -48,7 +50,13 @@ class IPSModel(nn.Module):
         examination = self.predict_examination(batch, training=training)
         relevance = self.predict_relevance(batch, training=training)
 
+        # Compute log-odds of click for NLL evaluation.
+        # Convert relevance logit to probability and return click log odds.
+        # Assumes examination is already a probability:
+        click = logit(examination * nn.sigmoid(relevance))
+
         return IPSOutput(
+            click=click,
             examination=examination,
             relevance=relevance,
         )
