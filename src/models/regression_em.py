@@ -4,6 +4,7 @@ import rax
 from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
+from jax.scipy.special import logit
 from rax._src.types import ReduceFn
 
 from src.data import FeatureType
@@ -44,7 +45,10 @@ class RegressionEM(nn.Module):
     def __call__(self, batch: Dict, training: bool) -> RegressionEMOutput:
         examination = self.predict_examination(batch, training=training)
         relevance = self.predict_relevance(batch, training=training)
-        click = examination + relevance
+
+        # Calculating click log-odds for NLL evaluation.
+        # In a future iteration, directly return the click probability:
+        click = logit(nn.sigmoid(examination) * nn.sigmoid(relevance))
 
         return RegressionEMOutput(
             click=click,
