@@ -3,7 +3,7 @@ from typing import Callable, Dict
 from flax import linen as nn
 from flax.struct import dataclass
 from jax import Array
-from jax._src.scipy.special import logit
+from jax.scipy.special import logit
 from rax._src.types import ReduceFn
 
 from src.data import FeatureType
