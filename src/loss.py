@@ -124,6 +124,32 @@ def pointwise_sigmoid_ips(
     return rax._src.utils.safe_reduce(loss, where=where, reduce_fn=reduce_fn)
 
 
+def pointwise_sigmoid_ips_rax(
+    examination: Array,
+    relevance: Array,
+    labels: Array,
+    where: Optional[Array] = None,
+    max_weight: float = 10,
+    reduce_fn: Optional = jnp.mean,
+    eps: float = 1.0e-9,
+) -> Array:
+    """
+    Pointwise IPS loss as in Bekker et al.:
+    https://arxiv.org/pdf/1809.03207.pdf
+    and Saito et al.:
+    https://dl.acm.org/doi/abs/10.1145/3336191.3371783
+    """
+    weights = _ips_weights(examination, where, max_weight)
+
+    return rax.pointwise_sigmoid_loss(
+        scores=relevance,
+        labels=labels,
+        weights=weights,
+        where=where,
+        reduce_fn=reduce_fn,
+    )
+
+
 def listwise_softmax_ips(
     examination: Array,
     relevance: Array,

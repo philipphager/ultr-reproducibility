@@ -3,7 +3,7 @@
 model:
   config:
     dims: 256
-    layers: 5
+    layers: 2
     dropout: 0
 
-lr: 0.0003
+lr: 0.0001
