@@ -9,6 +9,7 @@ from typing import Dict, Tuple, Callable, Optional
 import chex
 import flax.linen as nn
 import jax
+import jax.numpy as jnp
 import pandas as pd
 import wandb
 from flax.training import train_state
@@ -298,3 +299,31 @@ class Trainer:
         dropout = jax.random.fold_in(key=state.dropout_key, data=step)
         random_model = jax.random.fold_in(key=state.random_model_key, data=step)
         return {"dropout": dropout, "random_model": random_model}
+
+    def predict_examination(
+        self,
+        model,
+        state: TrainState,
+        positions: int,
+        normalize: bool = True,
+    ):
+        rngs = self.generate_rngs(state, step=0)
+        batch = {"position": jnp.arange(1, positions + 1)}
+
+        examination_logit = model.apply(
+            state.params,
+            batch,
+            training=False,
+            rngs=rngs,
+            method=model.predict_examination,
+        )
+        examination = nn.sigmoid(examination_logit)
+        examination = examination / examination[0] if normalize else examination
+
+        return pd.DataFrame(
+            {
+                "model": model.__class__.__name__,
+                "position": batch["position"],
+                "examination": examination,
+            }
+        )
