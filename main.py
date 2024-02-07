@@ -151,17 +151,18 @@ def main(config: DictConfig):
         log_stage=Stage.TEST,
     )
 
-    exam_df = trainer.predict_examination(
-        model,
-        best_state,
-        positions=25,
-    )
-
-    exam_df.to_parquet("exam.parquet")
     history_df.to_parquet("history.parquet")
     val_df.to_parquet("val.parquet")
     test_click_df.to_parquet("test_click.parquet")
     test_rel_df.to_parquet("test_rel.parquet")
+
+    if hasattr(model, "predict_examination"):
+        exam_df = trainer.predict_examination(
+            model,
+            best_state,
+            positions=25,
+        )
+        exam_df.to_parquet("exam.parquet")
 
     if config.logging:
         wandb.finish()
