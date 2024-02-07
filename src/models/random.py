@@ -7,11 +7,13 @@ from jax import Array
 from jax import random
 from rax._src.types import ReduceFn
 
+from src.data import FeatureType
 from src.util import reduce_per_query
 
 
 @dataclass
 class RandomConfig:
+    features: FeatureType
     reduce_fn: ReduceFn = reduce_per_query
 
 
