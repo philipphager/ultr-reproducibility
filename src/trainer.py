@@ -103,6 +103,60 @@ class Trainer:
         history_df = pd.concat(history) if len(history) > 0 else pd.DataFrame([])
         return best_model_state, history_df
 
+    def train_eval(
+        self,
+        model: nn.Module,
+        train_loader: DataLoader,
+        val_loader: DataLoader,
+        test_click_loader: DataLoader,
+        test_rel_loader: DataLoader,
+    ) -> Tuple[TrainState, pd.DataFrame]:
+        start_time = time.time()
+        state = self._init_train_state(model, train_loader)
+        best_model_state = state
+        history = []
+
+        for epoch in range(self.epochs):
+            state, train_loss = self._train_epoch(
+                model, state, train_loader, f"Epoch: {epoch} - Training"
+            )
+
+            val_loss = self._val_epoch(
+                model, state, val_loader, f"Epoch: {epoch} - Val"
+            )
+
+            has_improved, self.early_stopping = self.early_stopping.update(val_loss)
+
+            if has_improved:
+                best_model_state = state
+
+                if self.save_checkpoints:
+                    save_state(state, Path(os.getcwd()), "best_state")
+
+            test_click_df = self.test_clicks(model, state, loader=test_click_loader)
+            test_click_df["epoch"] = epoch
+            test_click_df.to_parquet(f"test_click_{epoch}.parquet")
+
+            test_rel_df = self.test_relevance(model, state, loader=test_rel_loader)
+            test_rel_df["epoch"] = epoch
+            test_rel_df.to_parquet(f"test_rel_{epoch}.parquet")
+
+            epoch_metrics = {
+                "Train/loss": float(train_loss),
+                "Val/loss": float(val_loss),
+                "Misc/TimePerEpoch": (time.time() - start_time) / (epoch + 1),
+                "Misc/Epoch": epoch,
+            }
+            logging.info(f"Epoch {epoch}: {epoch_metrics}, improved: {has_improved}")
+            history.append(pd.json_normalize(epoch_metrics, sep=""))
+
+            if self.log_metrics:
+                wandb.log(epoch_metrics, step=epoch)
+
+
+        history_df = pd.concat(history) if len(history) > 0 else pd.DataFrame([])
+        return best_model_state, history_df
+
     def test_clicks(
         self,
         model: nn.Module,

@@ -91,6 +91,20 @@ def main(config: DictConfig):
     test_clicks = load_clicks(config, split="test")
     test_rels = load_annotations(config)
 
+    _, train_clicks = random_split(
+        train_clicks,
+        shuffle=True,
+        random_state=config.random_state,
+        test_size=0.01,
+    )
+
+    _, test_clicks = random_split(
+        test_clicks,
+        shuffle=True,
+        random_state=config.random_state,
+        test_size=0.01,
+    )
+
     val_clicks, test_clicks = random_split(
         test_clicks,
         shuffle=True,
