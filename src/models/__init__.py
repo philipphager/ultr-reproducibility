@@ -1,3 +1,4 @@
+from .bm25 import BM25, BM25Config
 from .dla import DualLearningAlgorithm, DLAConfig
 from .ips import IPSModel, IPSConfig
 from .naive import NaiveModel, NaiveConfig
