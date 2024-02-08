@@ -26,30 +26,19 @@ We list all hyperparameters used to train our BERT models [here](https://github.
 #### Reranking models
 We train small feed-forward networks with ReLU activation on fixed query-document embeddings and LTR vectors to compare ULTR objectives. We tune the model architecture per dataset and lr and dropout regularization per method/dataset combination. We list all final hyperparameters of the reranking models under [`config/hyperparameters/`](https://github.com/philipphager/ultr-reproducibility/tree/main/config/hyperparameter).
 
-##: Installation
-* If [Poetry](https://python-poetry.org/docs/cli/) is available, you can install all dependencies by running: `poetry install`.
-* If Conda or [Mamba](https://mamba.readthedocs.io/en/latest/user_guide/mamba.html) is available, you can use `mamba env create --file environment.yaml` which supports CUDA 11.8.
-
 ### Position Bias
+<p align="center">
+ <img src='https://github.com/philipphager/ultr-reproducibility/assets/9155371/c1bb9d2d-9c82-4c3f-a09d-dae7ce10c8f4' width='600'>
+</p>
 
+Position bias as estimated with the [ULTR Bias Toolkit](https://huggingface.co/datasets/philipphager/baidu-ultr_uva-mlm-ctr) on partitions 2-4 of Baidu-ULTR.
 
-## Usage
-Select a model `["naive", "pbm", "two-tower"]` and loss `["pointwise", "listwise"]`:
-```bash
- python main.py -m model=naive loss=pointwise
-```
+### Installation
+* If [Poetry](https://python-poetry.org/docs/cli/) is available, you can install all dependencies by running: `poetry install`.
+* If [Mamba](https://mamba.readthedocs.io/en/latest/user_guide/mamba.html) is available, you can use `mamba env create --file environment.yaml` which supports CUDA 11.8.
 
-You can also train the PBM and Two Tower models using the DLA `["pointwise-dla", "listwise-dla"]` and RegressionEM `["pointwise-em", "listwise-em"]` loss. However, they expect that relevance and examination are not combined into a click prediction:  
+### Usage
+Select a dataset `["baidu", "uva", "ltr"]` and model/loss combination, e.g.,: `["naive-pointwise", "regression-em", "dla", "pairwise-debias"]` an run:
 ```bash
- python main.py -m model=two-towers loss=listwise-dla model.tower_combination=NONE
-```
-
-## Dashboards
-You can run streamlit apps to inspect test metrics:
-```bash
-streamlit run 1_plot_metrics.py
-```
-Or plot the learned position bias of models:
-```bash
-streamlit run 2_plot_bias.py
+ python main.py -m data=baidu model=naive-pointwise
 ```
