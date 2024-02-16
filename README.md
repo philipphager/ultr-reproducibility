@@ -31,14 +31,14 @@ We train small feed-forward networks with ReLU activation on fixed query-documen
  <img src='https://github.com/philipphager/ultr-reproducibility/assets/9155371/c1bb9d2d-9c82-4c3f-a09d-dae7ce10c8f4' width='600'>
 </p>
 
-Position bias as estimated with the [ULTR Bias Toolkit](https://huggingface.co/datasets/philipphager/baidu-ultr_uva-mlm-ctr) on partitions 2-4 of Baidu-ULTR.
+Position bias as estimated with the [ULTR Bias Toolkit](https://github.com/philipphager/ultr-bias-toolkit) on partitions 1-3 of Baidu-ULTR.
 
 ### Installation
 * If [Poetry](https://python-poetry.org/docs/cli/) is available, you can install all dependencies by running: `poetry install`.
 * If [Mamba](https://mamba.readthedocs.io/en/latest/user_guide/mamba.html) is available, you can use `mamba env create --file environment.yaml` which supports CUDA 11.8.
 
 ### Usage
-Select a dataset `["baidu", "uva", "ltr"]` and model/loss combination, e.g.,: `["naive-pointwise", "regression-em", "dla", "pairwise-debias"]` an run:
+Select a dataset `["baidu", "uva", "ltr"]` and model/loss combination, e.g.,: `["naive-pointwise", "regression-em", "dla", "pairwise-debias"]` and run:
 ```bash
- python main.py -m data=baidu model=naive-pointwise
+ python main.py data=baidu model=naive-pointwise
 ```
