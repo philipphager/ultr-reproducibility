@@ -31,7 +31,7 @@ We train small feed-forward networks with ReLU activation on fixed query-documen
  <img src='https://github.com/philipphager/ultr-reproducibility/assets/9155371/c1bb9d2d-9c82-4c3f-a09d-dae7ce10c8f4' width='600'>
 </p>
 
-Position bias as estimated with the [ULTR Bias Toolkit](https://github.com/philipphager/ultr-bias-toolkit) on partitions 2-4 of Baidu-ULTR.
+Position bias as estimated with the [ULTR Bias Toolkit](https://github.com/philipphager/ultr-bias-toolkit) on partitions 1-3 of Baidu-ULTR.
 
 ### Installation
 * If [Poetry](https://python-poetry.org/docs/cli/) is available, you can install all dependencies by running: `poetry install`.
