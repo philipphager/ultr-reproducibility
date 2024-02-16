@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "baidu-reproducibility"
-version = "0.6.1"
+version = "1.0.0"
 description = ""
 authors = ["Philipp Hager <p.k.hager@uva.nl>", "Romain Deffayet <r.e.deffayet@uva.nl>"]
 readme = "README.md"

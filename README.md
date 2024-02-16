@@ -38,7 +38,7 @@ Position bias as estimated with the [ULTR Bias Toolkit](https://github.com/phili
 * If [Mamba](https://mamba.readthedocs.io/en/latest/user_guide/mamba.html) is available, you can use `mamba env create --file environment.yaml` which supports CUDA 11.8.
 
 ### Usage
-Select a dataset `["baidu", "uva", "ltr"]` and model/loss combination, e.g.,: `["naive-pointwise", "regression-em", "dla", "pairwise-debias"]` an run:
+Select a dataset `["baidu", "uva", "ltr"]` and model/loss combination, e.g.,: `["naive-pointwise", "regression-em", "dla", "pairwise-debias"]` and run:
 ```bash
- python main.py -m data=baidu model=naive-pointwise
+ python main.py data=baidu model=naive-pointwise
 ```
