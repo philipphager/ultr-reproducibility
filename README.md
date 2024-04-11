@@ -39,6 +39,7 @@ Position bias as estimated with the [ULTR Bias Toolkit](https://github.com/phili
 Select a dataset `["baidu", "uva", "ltr"]` and model/loss combination, e.g.,: `["naive-pointwise", "regression-em", "dla", "pairwise-debias"]` and run:
 ```bash
  python main.py data=baidu model=naive-pointwise
+```
 
 ### Reference
 ```
