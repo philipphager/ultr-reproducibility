@@ -5,13 +5,12 @@ Repository for the work `Unbiased Learning to Rank Meets Reality: Lessons from B
 ### Repositories
 | Dataset                   | Description |
 |---------------------------|-------------------------|
-| [Baidu-ULTR Reprocibility](https://github.com/philipphager/ultr-reproducibility/edit/main/README.md) | **This repository**, containing the code to tune, train, and evaluate all reranking methods including reference implementations of [ULTR methods in Jax and Rax](https://github.com/philipphager/ultr-reproducibility/blob/main/src/loss.py). |
-| [Baidu BERT models](https://github.com/philipphager/baidu-bert-model) | Repository containing the code to train flax-based MonoBERT models from scratch (optionally with ULTR). This dataset will be included into the main repository in the near future. |
+| [Baidu-ULTR reprocibility](https://github.com/philipphager/ultr-reproducibility/edit/main/README.md) | **This repository**, containing the code to tune, train, and evaluate all reranking methods including reference implementations of [ULTR methods in Jax and Rax](https://github.com/philipphager/ultr-reproducibility/blob/main/src/loss.py). |
+| [Baidu-ULTR MonoBERT models](https://github.com/philipphager/baidu-bert-model) | Repository containing the code to train flax-based MonoBERT models from scratch (optionally with ULTR). |
 | [Reranking datasets](https://github.com/philipphager/baidu-ultr) | Code to preprocess and publish the two reranking datasets to Huggingface (see below). |
-| [ULTR Bias Toolkit](https://github.com/philipphager/ultr-bias-toolkit) | Reference implementation of Intervention Harvesting methods. RegressionEM as used in our work was implemented in this dataset. |
+| [ULTR bias toolkit](https://github.com/philipphager/ultr-bias-toolkit) | Reference implementation of Intervention Harvesting methods. RegressionEM as used in our work was implemented in this dataset. |
 
 ### Datasets
-
 | Dataset                   | Description |
 |---------------------------|-------------------------|
 | [Language modeling dataset](https://huggingface.co/datasets/philipphager/baidu-ultr-pretrain/tree/main) | Subset of the original Baidu-ULTR used in our work to train and evaluate MonoBERT cross-encoders. |
@@ -19,7 +18,6 @@ Repository for the work `Unbiased Learning to Rank Meets Reality: Lessons from B
 | [Reranking dataset (our BERT)](https://huggingface.co/datasets/philipphager/baidu-ultr_uva-mlm-ctr) | The first four partition of Baidu-ULTR with query-document embeddings produced by our naive MonoBERT cross-encoder and additional LTR features. |
 
 ### Hyperparameters
-
 #### Base Language Models
 We list all hyperparameters used to train our BERT models [here](https://github.com/philipphager/baidu-bert-model/blob/main/config/config.yaml).
 
@@ -41,4 +39,14 @@ Position bias as estimated with the [ULTR Bias Toolkit](https://github.com/phili
 Select a dataset `["baidu", "uva", "ltr"]` and model/loss combination, e.g.,: `["naive-pointwise", "regression-em", "dla", "pairwise-debias"]` and run:
 ```bash
  python main.py data=baidu model=naive-pointwise
+
+### Reference
+```
+@inproceedings{Hager2024BaiduULTR,
+  author = {Philipp Hager and Romain Deffayet and Jean-Michel Renders and Onno Zoeter and Maarten de Rijke},
+  title = {Unbiased Learning to Rank Meets Reality: Lessons from Baidu’s Large-Scale Search Dataset},
+  booktitle = {Proceedings of the 47th International ACM SIGIR Conference on Research and Development in Information Retrieval (SIGIR`24)},
+  organization = {ACM},
+  year = {2024},
+}
 ```
