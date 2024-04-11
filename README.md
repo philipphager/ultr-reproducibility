@@ -8,7 +8,7 @@ Repository for the work `Unbiased Learning to Rank Meets Reality: Lessons from B
 | [Baidu-ULTR reprocibility](https://github.com/philipphager/ultr-reproducibility/edit/main/README.md) | **This repository**, containing the code to tune, train, and evaluate all reranking methods including reference implementations of [ULTR methods in Jax and Rax](https://github.com/philipphager/ultr-reproducibility/blob/main/src/loss.py). |
 | [Baidu-ULTR MonoBERT models](https://github.com/philipphager/baidu-bert-model) | Repository containing the code to train flax-based MonoBERT models from scratch (optionally with ULTR). |
 | [Reranking datasets](https://github.com/philipphager/baidu-ultr) | Code to preprocess and publish the two reranking datasets to Huggingface (see below). |
-| [ULTR bias toolkit](https://github.com/philipphager/ultr-bias-toolkit) | Reference implementation of Intervention Harvesting methods. RegressionEM as used in our work was implemented in this dataset. |
+| [ULTR bias toolkit](https://github.com/philipphager/ultr-bias-toolkit) | Reference implementation of Intervention Harvesting methods. RegressionEM as used in our work was implemented in this repository. |
 
 ### Datasets
 | Dataset                   | Description |
