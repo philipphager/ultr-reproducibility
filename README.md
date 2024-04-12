@@ -51,3 +51,6 @@ Select a dataset `["baidu", "uva", "ltr"]` and model/loss combination, e.g.,: `[
   year = {2024},
 }
 ```
+
+### License
+This repository uses the [MIT License](https://github.com/philipphager/ultr-reproducibility/blob/main/LICENSE).
