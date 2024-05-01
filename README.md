@@ -1,5 +1,5 @@
 # Baidu-ULTR Reproducibility
-Repository for the work `Unbiased Learning to Rank Meets Reality: Lessons from Baidu's Large-Scale Search Dataset` under submission at the SIGIR 24 reproducibility track.
+Main repository for the paper `Unbiased Learning to Rank Meets Reality: Lessons from Baidu's Large-Scale Search Dataset` published at the SIGIR 2024 reproducibility track.
 
 ## Overview
 ### Repositories
