@@ -19,7 +19,7 @@ Main repository for the paper `Unbiased Learning to Rank Meets Reality: Lessons 
 
 ### Hyperparameters
 #### Base Language Models
-We list all hyperparameters used to train our BERT models [here](https://github.com/philipphager/baidu-bert-model/blob/main/config/config.yaml).
+We list all hyperparameters used to train our models [here](https://github.com/philipphager/ultr-reproducibility/tree/main/config/hyperparameter).
 
 #### Reranking models
 We train small feed-forward networks with ReLU activation on fixed query-document embeddings and LTR vectors to compare ULTR objectives. We tune the model architecture per dataset and lr and dropout regularization per method/dataset combination. We list all final hyperparameters of the reranking models under [`config/hyperparameters/`](https://github.com/philipphager/ultr-reproducibility/tree/main/config/hyperparameter).
